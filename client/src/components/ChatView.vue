@@ -1,0 +1,119 @@
+<script setup lang="ts">
+import { ref, watch, nextTick } from "vue";
+import type { ChatMessage } from "../types";
+
+const props = defineProps<{
+  messages: ChatMessage[];
+  isRunning: boolean;
+}>();
+
+const listRef = ref<HTMLElement>();
+
+watch(
+  () => props.messages.length,
+  async () => {
+    await nextTick();
+    if (listRef.value) {
+      listRef.value.scrollTop = listRef.value.scrollHeight;
+    }
+  }
+);
+</script>
+
+<template>
+  <div ref="listRef" class="chat-view">
+    <div
+      v-for="msg in messages"
+      :key="msg.id"
+      class="message"
+      :class="msg.role"
+    >
+      <div class="avatar">{{ msg.role === "user" ? "我" : "AI" }}</div>
+      <div class="bubble">
+        <div class="content">{{ msg.content }}</div>
+        <span v-if="msg.isStreaming" class="cursor">|</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.chat-view {
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message {
+  display: flex;
+  gap: 10px;
+  max-width: 80%;
+}
+
+.message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message.assistant {
+  align-self: flex-start;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.message.user .avatar {
+  background: #4f46e5;
+  color: #fff;
+}
+
+.message.assistant .avatar {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message.user .bubble {
+  background: #4f46e5;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.message.assistant .bubble {
+  background: #f3f4f6;
+  color: #1f2937;
+  border-bottom-left-radius: 4px;
+}
+
+.cursor {
+  animation: blink 1s step-end infinite;
+  color: #4f46e5;
+  font-weight: bold;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+</style>
