@@ -125,9 +125,10 @@ describe("createHarness 集成测试", () => {
     });
     expect(harness2).toBeDefined();
 
-    // 验证未新增 session 文件
+    // 验证未新增 session 文件，且文件内容相同（路径一致即复用）
     const entriesAfterSecond = await fs.readdir(sessionDir);
     expect(entriesAfterSecond.length).toBe(entriesAfterFirst.length);
+    expect(entriesAfterSecond.sort()).toEqual(entriesAfterFirst.sort());
   });
 
   it("subscribe 监听器应收到事件", async () => {

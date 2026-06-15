@@ -4,14 +4,19 @@ export function promptRoute(harness: { prompt: (text: string) => Promise<{ stopR
   const app = new Hono();
 
   app.post("/prompt", async (c) => {
+    let body: any;
     try {
-      const body = await c.req.json();
-      const text = body?.text;
+      body = await c.req.json();
+    } catch {
+      return c.json({ ok: false, error: "请求体不是有效的 JSON" }, 400);
+    }
 
-      if (!text || typeof text !== "string" || text.trim() === "") {
-        return c.json({ ok: false, error: "缺少 text 字段或为空" }, 400);
-      }
+    const text = body?.text;
+    if (!text || typeof text !== "string" || text.trim() === "") {
+      return c.json({ ok: false, error: "缺少 text 字段或为空" }, 400);
+    }
 
+    try {
       const result = await harness.prompt(text);
       return c.json({ ok: true, stopReason: result.stopReason });
     } catch (err) {

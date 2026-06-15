@@ -204,4 +204,15 @@ describe("POST /api/prompt — 边界输入", () => {
     expect(res.status).toBe(200);
     expect(harness.prompt).toHaveBeenCalledWith(specialText);
   });
+
+  it("非法 JSON 应返回 400", async () => {
+    const res = await app.request("/api/prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "not-json",
+    });
+
+    expect(res.status).toBe(400);
+    expect(harness.prompt).not.toHaveBeenCalled();
+  });
 });

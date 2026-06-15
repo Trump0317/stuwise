@@ -1,28 +1,16 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import ChatView from "./components/ChatView.vue";
 import ChatInput from "./components/ChatInput.vue";
-import type { ChatMessage } from "./types";
-import { nextId } from "./types";
+import { useAgent } from "./composables/useAgent";
 
-// M0-4 mock 数据
-const messages = ref<ChatMessage[]>([
-  { id: nextId(), role: "assistant", content: "你好！我是 Stuwise，你的学生助理。有什么可以帮你的？", timestamp: Date.now() - 60000 },
-  { id: nextId(), role: "user", content: "今天有什么学习建议？", timestamp: Date.now() - 30000 },
-  { id: nextId(), role: "assistant", content: "建议你今天复习一下本周的课程笔记，然后做一套练习题巩固知识。需要我帮你整理笔记吗？", timestamp: Date.now() },
-]);
-
-// M0-5 改为 useAgent().isRunning
-const isRunning = ref(false);
+const { messages, isRunning, error, send, abort, clearError } = useAgent();
 
 function handleSend(text: string) {
-  // M0-5 对接 useAgent().send()
-  console.log("发送:", text);
+  send(text);
 }
 
 function handleAbort() {
-  // M0-5 对接 useAgent().abort()
-  console.log("中止");
+  abort();
 }
 </script>
 
@@ -32,6 +20,10 @@ function handleAbort() {
       <h1>Stuwise</h1>
       <span class="subtitle">学生助理</span>
     </header>
+    <div v-if="error" class="error-banner">
+      <span>{{ error }}</span>
+      <button class="error-close" @click="clearError">×</button>
+    </div>
     <main class="app-main">
       <ChatView :messages="messages" :is-running="isRunning" />
     </main>
@@ -93,5 +85,26 @@ body {
 
 .app-footer {
   border-top: 1px solid #eee;
+}
+
+.error-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 20px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 13px;
+  border-bottom: 1px solid #fecaca;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
 }
 </style>
