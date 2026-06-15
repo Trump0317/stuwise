@@ -7,7 +7,7 @@
 | # | 任务 | 状态 |
 |---|------|------|
 | M0-1 | 工程初始化 | [x] |
-| M0-2 | AgentHarness 工厂 | [ ] |
+| M0-2 | AgentHarness 工厂 | [~] |
 | M0-3 | Hono 路由 + 开发代理 | [ ] |
 | M0-4 | Vue 前端骨架 + 聊天 UI | [ ] |
 | M0-5 | SSE 事件推流 + 前端状态管理 | [ ] |
@@ -36,12 +36,13 @@
     tests/unit/  tests/integration/
     ```
   - 配置 `tsconfig.json`：ESM 模块（`module: "ESNext"`，`moduleResolution: "bundler"`），strict 模式，target ES2022
-  - 创建 `.env.example`，支持多 provider：
+  - 创建 `.env.example`，支持多 provider（API Key 用 pi-ai 标准变量名）：
     ```
     # LLM 配置
     LLM_PROVIDER=anthropic
     LLM_MODEL=claude-3-7-sonnet-20250219
-    LLM_API_KEY=sk-xxx
+    # API Key 使用对应 provider 的标准环境变量名，pi-ai 的 getEnvApiKey() 自动识别
+    ANTHROPIC_API_KEY=sk-ant-xxx
     ```
   - 更新 `.gitignore`：`node_modules/`, `dist/`, `.env`, `data/`（`data/` 是运行时数据，不纳入版本控制）
 - **验收**：
@@ -62,15 +63,17 @@
 - **实现**：
   - `server/config.ts`：
     ```typescript
+    import { getEnvApiKey } from "@earendil-works/pi-ai";
+
+    const provider = process.env.LLM_PROVIDER || "anthropic";
+
     export const config = {
       port: 3000,
-      model: {
-        provider: process.env.LLM_PROVIDER || "anthropic",
-        modelId: process.env.LLM_MODEL || "claude-3-7-sonnet-20250219",
-      },
-      apiKey: process.env.LLM_API_KEY || "",
+      model: { provider, modelId: process.env.LLM_MODEL || "claude-3-7-sonnet-20250219" },
       sessionDir: "./data/sessions",
       skillsDir: "./skills",
+      // 懒求值：harness 创建时才读取，确保 .env 已加载
+      getApiKey(): string { return getEnvApiKey(provider) || ""; },
     };
     ```
   - `createHarness(options)` 接收 `{ provider, modelId, apiKey, sessionDir?, systemPrompt? }`：
@@ -79,10 +82,9 @@
     - **Session 生命周期**：
       - `JsonlSessionRepo` 构造函数传入 `{ fs: env, sessionsRoot: sessionDir }`
       - 调用 `repo.list()` 查找已有 session：若有则 `repo.open(metadata)`，若无则 `repo.create({ cwd: sessionDir })`
-      - 首次创建后将 metadata 写入 `sessionDir/.metadata.json`，重启时读取复用
     - 暂时不注册任何 tools（`tools: []`）
     - System Prompt 默认：`"你是一个友好的学生助理，帮助用户处理日常学习任务。请用中文回复。"`
-  - provider/modelId/apiKey 从环境变量读取（`LLM_PROVIDER`、`LLM_MODEL`、`LLM_API_KEY`）
+  - provider/modelId 从环境变量读取（`LLM_PROVIDER`、`LLM_MODEL`），apiKey 由 config.ts 通过 pi-ai 的 `getEnvApiKey()` 自动获取
   - **测试 mock**：构造最小 Model 对象（只需 `id, name, api, provider, baseUrl, contextWindow, maxTokens, cost` 字段），无需真实 API Key
   - 单元测试：验证 `createHarness()` 返回 AgentHarness 实例，tools 为空，session 已创建
   - 集成测试：验证 `getModel()`、`getTools()`、`subscribe()` 能正常调用
@@ -258,11 +260,11 @@
 - **目标**：验证完整链路（浏览器 → Hono → AgentHarness → LLM → SSE → 浏览器），纯文本对话
 - **文件**：无新增文件（如有小修复，在原有文件修改）
 - **实现**：
-  - 在 `.env` 文件中配置真实的 API Key：
+  - 在 `.env` 文件中配置真实 API Key（使用 provider 对应标准变量名）：
     ```
     LLM_PROVIDER=anthropic
     LLM_MODEL=claude-3-7-sonnet-20250219
-    LLM_API_KEY=sk-ant-your-real-key
+    ANTHROPIC_API_KEY=sk-ant-your-real-key
     ```
   - `npm run dev` 启动，浏览器访问 `http://localhost:5173`
   - 浏览器中发送多条消息，逐条验证：
