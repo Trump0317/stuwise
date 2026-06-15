@@ -1,1 +1,9 @@
 help-doc/
+node_modules/
+dist/
+.env
+# 运行时数据不入库，但保留目录结构
+data/sessions/*
+!data/sessions/.gitkeep
+data/notes/*
+!data/notes/.gitkeep
