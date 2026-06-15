@@ -128,8 +128,7 @@ stuwise/
 │       ├── components/
 │       │   ├── ChatView.vue
 │       │   ├── ChatInput.vue
-│       │   ├── StreamMessage.vue
-│       │   └── ToolCall.vue
+│       │   └── ToolCall.vue          ← M0 后引入
 │       ├── composables/
 │       │   └── useAgent.ts
 │       └── types.ts
@@ -160,6 +159,7 @@ stuwise/
 │   └── e2e/
 ├── package.json
 ├── tsconfig.json
+├── .env.example
 └── AGENTS.md
 ```
 
@@ -174,26 +174,36 @@ import { JsonlSessionRepo, loadSkills } from "@earendil-works/pi-agent-core";
 import { createAllTools } from "../tools/index.ts";
 
 export async function createHarness(options: {
-  model: Model<any>;
+  provider: string;
+  modelId: string;
   apiKey: string;
   sessionDir: string;
   skillsDir: string;
-  systemPrompt: string;
+  systemPrompt?: string;
 }) {
+  const model = getModel(options.provider, options.modelId);
   const env = new NodeExecutionEnv({ cwd: process.cwd() });
-  const repo = new JsonlSessionRepo();
-  const session = await repo.create({ cwd: options.sessionDir });
 
-  // 从 skills/ 目录加载 Skill
+  // Session 生命周期：首次创建，后续打开
+  const repo = new JsonlSessionRepo({ fs: env, sessionsRoot: options.sessionDir });
+  const sessions = await repo.list();
+  let session: Session;
+  if (sessions.length > 0) {
+    session = await repo.open(sessions[0]);
+  } else {
+    session = await repo.create({ cwd: options.sessionDir });
+  }
+
+  // 从 skills/ 目录加载 Skill（M1 实现，M0 时 skills/ 为空）
   const { skills } = await loadSkills(env, options.skillsDir);
 
-  const tools = createAllTools();
+  const tools = createAllTools();  // M1 实现，M0 时 tools: []
   const systemPrompt = buildSystemPrompt(options.systemPrompt, skills);
 
   return new AgentHarness({
     env,
     session,
-    model: options.model,
+    model,
     tools,
     systemPrompt,
     resources: { skills },
@@ -250,15 +260,16 @@ export function createAllTools(): AgentTool[] {
 
 ```typescript
 export function useAgent() {
-  const messages = ref<AgentMessage[]>([]);
-  const streaming = ref("");
-  const toolCalls = ref<Map<string, ToolCallStatus>>(new Map());
+  const messages = ref<ChatMessage[]>([]);
   const isRunning = ref(false);
+  const error = ref<string | null>(null);
+  // M0 后扩展：toolCalls: Map<string, ToolCallStatus>
 
   async function send(text: string): Promise<void> { ... }
   function abort(): void { ... }
+  function clearError(): void { ... }
 
-  return { messages, streaming, toolCalls, isRunning, send, abort };
+  return { messages, isRunning, error, send, abort, clearError };
 }
 ```
 
