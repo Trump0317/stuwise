@@ -8,8 +8,9 @@
     "test": "npx vitest run"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^0.79.0",
     "@earendil-works/pi-agent-core": "^0.79.0",
+    "@earendil-works/pi-ai": "^0.79.0",
+    "@hono/node-server": "^2.0.5",
     "hono": "^4.7.0"
   },
   "devDependencies": {
