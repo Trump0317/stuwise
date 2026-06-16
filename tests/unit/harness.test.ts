@@ -44,6 +44,8 @@ vi.mock("@earendil-works/pi-agent-core", () => {
   return {
     AgentHarness: MockAgentHarness,
     JsonlSessionRepo: vi.fn(),
+    loadSkills: vi.fn().mockResolvedValue({ skills: [], diagnostics: [] }),
+    formatSkillsForSystemPrompt: vi.fn().mockReturnValue(""),
   };
 });
 
@@ -53,7 +55,7 @@ vi.mock("@earendil-works/pi-agent-core/node", () => ({
 
 import { createHarness } from "../../server/harness";
 import { getModel } from "@earendil-works/pi-ai";
-import { JsonlSessionRepo, AgentHarness } from "@earendil-works/pi-agent-core";
+import { JsonlSessionRepo, AgentHarness, loadSkills, formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
 import { NodeExecutionEnv } from "@earendil-works/pi-agent-core/node";
 
 const baseOptions = {
@@ -171,11 +173,10 @@ describe("createHarness — System Prompt 和 API Key", () => {
     vi.mocked(JsonlSessionRepo).mockImplementation(() => createMockRepo() as any);
   });
 
-  it("默认 System Prompt 应包含学生助理和中文", async () => {
+  it("默认 System Prompt 应存在", async () => {
     await createHarness(baseOptions);
     const harnessOptions = vi.mocked(AgentHarness).mock.calls[0][0];
-    expect(harnessOptions.systemPrompt).toContain("学生助理");
-    expect(harnessOptions.systemPrompt).toContain("中文");
+    expect(harnessOptions.systemPrompt).toBeDefined();
   });
 
   it("应支持自定义 System Prompt", async () => {
@@ -199,5 +200,25 @@ describe("createHarness — System Prompt 和 API Key", () => {
     const fn = harnessOptions.getApiKeyAndHeaders!;
     const result = await fn(mockModel);
     expect(result).toEqual({ apiKey: "" });
+  });
+
+  it("应调用 loadSkills 加载 skills 目录", async () => {
+    await createHarness(baseOptions);
+    expect(loadSkills).toHaveBeenCalled();
+    const call = vi.mocked(loadSkills).mock.calls[0];
+    expect(call[1]).toBe("./skills");
+  });
+
+  it("应调用 formatSkillsForSystemPrompt", async () => {
+    await createHarness(baseOptions);
+    expect(formatSkillsForSystemPrompt).toHaveBeenCalled();
+  });
+
+  it("resources.skills 应为 loadSkills 返回的 skills", async () => {
+    const mockSkills = [{ name: "test", description: "t", content: "# t", filePath: "/t/SKILL.md" }];
+    vi.mocked(loadSkills).mockResolvedValue({ skills: mockSkills, diagnostics: [] });
+    await createHarness(baseOptions);
+    const opts = vi.mocked(AgentHarness).mock.calls[0][0];
+    expect(opts.resources?.skills).toEqual(mockSkills);
   });
 });

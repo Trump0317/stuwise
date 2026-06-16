@@ -6,7 +6,7 @@
 
 | # | 任务 | 状态 | 依赖 |
 |---|------|------|------|
-| M2-1 | Skill 加载器 + harness 集成 | [ ] | — |
+| M2-1 | Skill 加载器 + harness 集成 | [x] | — |
 | M2-2 | 前端 Skill 列表展示 | [ ] | M2-1 |
 | M2-3 | 端到端集成验证 | [ ] | 全部 |
 
@@ -126,9 +126,9 @@ description: Manage student notes in data/notes/ — create, read, edit, search 
 
 ### 验收条件
 
-- [ ] `npm run dev` 启动后 skills/ 被加载，diagnostics 无报错
-- [ ] System Prompt 包含 Skill 描述块
-- [ ] 空 skills/ 目录不报错
+- [x] `npm run dev` 启动后 skills/ 被加载，diagnostics 无报错
+- [x] System Prompt 包含 Skill 描述块
+- [x] 空 skills/ 目录不报错
 
 ---
 

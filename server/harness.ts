@@ -1,6 +1,5 @@
-import { AgentHarness } from "@earendil-works/pi-agent-core";
+import { AgentHarness, JsonlSessionRepo, loadSkills, formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
 import { NodeExecutionEnv } from "@earendil-works/pi-agent-core/node";
-import { JsonlSessionRepo } from "@earendil-works/pi-agent-core";
 import { getModel, type Model } from "@earendil-works/pi-ai";
 import type { Session, JsonlSessionMetadata } from "@earendil-works/pi-agent-core";
 import { createAllTools } from "../tools/index.js";
@@ -32,12 +31,24 @@ export async function createHarness(options: CreateHarnessOptions) {
     session = await repo.create({ cwd: sessionDir });
   }
 
+  // 加载 Skills
+  const { skills, diagnostics } = await loadSkills(env, "./skills");
+  for (const d of diagnostics) {
+    console.warn(`[Skill] ${d.message}`);
+  }
+
+  // 组装 System Prompt
+  const basePrompt = options.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+  const skillBlock = formatSkillsForSystemPrompt(skills);
+  const systemPrompt = [basePrompt, skillBlock].filter(Boolean).join("\n\n");
+
   return new AgentHarness({
     env,
     session,
     model,
     tools: createAllTools(env),
-    systemPrompt: options.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+    systemPrompt,
+    resources: { skills },
     getApiKeyAndHeaders: async () => ({ apiKey: options.apiKey }),
   });
 }
