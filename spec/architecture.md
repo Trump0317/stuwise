@@ -197,7 +197,7 @@ export async function createHarness(options: {
   // 从 skills/ 目录加载 Skill（M1 实现，M0 时 skills/ 为空）
   const { skills } = await loadSkills(env, options.skillsDir);
 
-  const tools = createAllTools();  // M1 实现，M0 时 tools: []
+  const tools = createAllTools(env);  // M1 实现，M0 时 tools: []
   const systemPrompt = buildSystemPrompt(options.systemPrompt, skills);
 
   return new AgentHarness({
@@ -239,7 +239,7 @@ app.post("/api/prompt", async (c) => {
 
 ```typescript
 // tools/index.ts
-export function createAllTools(): AgentTool[] {
+export function createAllTools(env: ExecutionEnv): AgentTool[] {
   return [
     createReadTool(),
     createBashTool(),
