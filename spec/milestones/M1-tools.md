@@ -9,14 +9,14 @@
 | M1-1 | read 文件读取工具 | [x] | — |
 | M1-2 | write 文件写入工具 | [x] | — |
 | M1-3 | edit 文件编辑工具 | [x] | — |
-| M1-4 | ls 目录列出工具 | [~] | — |
+| M1-4 | ls 目录列出工具 | [x] | — |
 | M1-5 | grep 文本搜索工具 | [x] | — |
-| M1-6 | find 文件名查找工具 | [~] | — |
+| M1-6 | find 文件名查找工具 | [x] | — |
 | M1-7 | bash 命令执行工具 | [x] | — |
 | M1-8 | web_search 网络搜索工具 | [x] | — |
 | M1-9 | web_fetch 网页抓取工具 | [x] | — |
 | M1-10 | 工具注册 + harness 集成 | [x] | M1-1 ~ M1-9 |
-| M1-11 | 前端工具调用状态展示 (ToolCall.vue) | [~] | M1-10 |
+| M1-11 | 前端工具调用状态展示 (ToolCall.vue) | [x] | M1-10 |
 | M1-12 | 端到端集成验证 | [x] | 全部 |
 
 ---
@@ -457,11 +457,11 @@ case "tool_execution_end":
 
 ### 验证清单
 
-- [ ] `npm run dev` 启动，浏览器打开
-- [ ] 发送「列出当前目录」→ Agent 调用 ls → 显示结果
-- [ ] 发送「创建一个文件 test.md 内容 hello」→ Agent 调用 write → 文件创建成功
-- [ ] 发送「搜索所有提到 hello 的文件」→ Agent 调用 grep → 显示匹配
-- [ ] 发送「搜索 Vue 3 最新文档」→ Agent 调用 web_search → 显示结果
-- [ ] 9 个工具都能正常调用和显示
-- [ ] Console 无错误
-- [ ] bug 记录到 spec/bug/M1-bug.md
+- [x] `npm run dev` 启动，浏览器打开
+- [x] 发送「列出当前目录」→ Agent 调用 ls → 显示结果
+- [x] 发送「创建一个文件 test.md 内容 hello」→ Agent 调用 write → 文件创建成功
+- [x] 发送「搜索所有提到 hello 的文件」→ Agent 调用 grep → 显示匹配
+- [x] 发送「搜索 Vue 3 最新文档」→ Agent 调用 web_search → 显示结果
+- [x] 9 个工具都能正常调用和显示
+- [x] Console 无错误
+- [x] bug 记录到 spec/bug/M1-bug.md

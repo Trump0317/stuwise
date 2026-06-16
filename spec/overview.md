@@ -15,7 +15,7 @@ Stuwise 是一个面向学生日常场景的 AI Agent，通过浏览器访问，
 
 ```
 打开浏览器 → 看到聊天界面 → 输入问题 → Agent 流式回复
-                                          ├── 调用通用工具（read/bash/edit/write）
+                                          ├── 调用通用工具（read/write/edit/ls/grep/find/bash）
                                           ├── 或调用网络工具（web_search/web_fetch）
-                                          └── 流式展示回复 + 工具执行状态
+                                          └── 流式展示回复 + 工具调用状态卡片
 ```
