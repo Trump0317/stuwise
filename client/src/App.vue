@@ -3,7 +3,7 @@ import ChatView from "./components/ChatView.vue";
 import ChatInput from "./components/ChatInput.vue";
 import { useAgent } from "./composables/useAgent";
 
-const { messages, toolCalls, isRunning, error, send, abort, clearError } = useAgent();
+const { timeline, isRunning, error, send, abort, clearError } = useAgent();
 
 function handleSend(text: string) {
   send(text);
@@ -25,7 +25,7 @@ function handleAbort() {
       <button class="error-close" @click="clearError">×</button>
     </div>
     <main class="app-main">
-      <ChatView :messages="messages" :tool-calls="toolCalls" :is-running="isRunning" />
+      <ChatView :timeline="timeline" :is-running="isRunning" />
     </main>
     <footer class="app-footer">
       <ChatInput

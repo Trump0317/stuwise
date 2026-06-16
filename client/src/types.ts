@@ -14,6 +14,13 @@ export interface ToolCallStatus {
   result?: string;
 }
 
+export interface TimelineItem {
+  id: string;
+  kind: "message" | "tool";
+  message: ChatMessage | null;
+  tool: ToolCallStatus | null;
+}
+
 export interface AgentError {
   message: string;
   timestamp: number;
