@@ -7,7 +7,7 @@
 | # | 任务 | 状态 | 依赖 |
 |---|------|------|------|
 | M2-1 | Skill 加载器 + harness 集成 | [x] | — |
-| M2-2 | 前端 Skill 列表展示 | [ ] | M2-1 |
+| M2-2 | 前端 Skill 列表展示 | [x] | M2-1 |
 | M2-3 | 端到端集成验证 | [ ] | 全部 |
 
 ---
@@ -159,8 +159,8 @@ description: Manage student notes in data/notes/ — create, read, edit, search 
 
 ### 验收条件
 
-- [ ] Skill 标签在页面可见
-- [ ] 样式协调
+- [x] Skill 标签在页面可见
+- [x] 样式协调
 
 ---
 

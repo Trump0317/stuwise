@@ -7,6 +7,7 @@ import { config } from "./config";
 import { promptRoute } from "./routes/prompt";
 import { eventsRoute } from "./routes/events";
 import { abortRoute } from "./routes/abort";
+import { skillsRoute } from "./routes/skills";
 
 const harness = await createHarness({
   provider: config.model.provider,
@@ -19,6 +20,7 @@ const app = new Hono();
 app.route("/api", promptRoute(harness));
 app.route("/api", eventsRoute(harness));
 app.route("/api", abortRoute(harness));
+app.route("/api", skillsRoute(harness));
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`Stuwise server: http://localhost:${info.port}`);

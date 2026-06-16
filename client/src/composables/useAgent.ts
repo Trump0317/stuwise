@@ -36,6 +36,7 @@ function toTimeline(msgs: ChatMessage[]): TimelineItem[] {
 
 export function useAgent() {
   const timeline = ref<TimelineItem[]>(toTimeline(loadMessages()));
+  const skills = ref<Array<{ name: string; description: string }>>([]);
   const isRunning = ref(false);
   const error = ref<string | null>(null);
 
@@ -47,6 +48,17 @@ export function useAgent() {
     const msgs = val.filter((t) => t.kind === "message").map((t) => t.message!);
     saveMessages(msgs);
   }, { deep: true });
+
+  // 页面加载时获取 skills
+  fetchSkills();
+
+  async function fetchSkills() {
+    try {
+      const res = await fetch("/api/skills");
+      const data = await res.json();
+      skills.value = data.skills || [];
+    } catch { /* ignore */ }
+  }
 
   async function send(text: string): Promise<void> {
     if (isRunning.value) return;
@@ -230,5 +242,5 @@ export function useAgent() {
     error.value = null;
   }
 
-  return { timeline, isRunning, error, send, abort, clearError, _handleEvent: handleEvent };
+  return { timeline, skills, isRunning, error, send, abort, clearError, _handleEvent: handleEvent };
 }

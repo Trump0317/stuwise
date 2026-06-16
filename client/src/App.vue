@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import ChatView from "./components/ChatView.vue";
 import ChatInput from "./components/ChatInput.vue";
+import SkillList from "./components/SkillList.vue";
 import { useAgent } from "./composables/useAgent";
 
-const { timeline, isRunning, error, send, abort, clearError } = useAgent();
+const { timeline, skills, isRunning, error, send, abort, clearError } = useAgent();
 
 function handleSend(text: string) {
   send(text);
@@ -20,6 +21,7 @@ function handleAbort() {
       <h1>Stuwise</h1>
       <span class="subtitle">学生助理</span>
     </header>
+    <SkillList :skills="skills" />
     <div v-if="error" class="error-banner">
       <span>{{ error }}</span>
       <button class="error-close" @click="clearError">×</button>
