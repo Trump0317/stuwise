@@ -15,7 +15,7 @@
 | M1-7 | bash 命令执行工具 | [x] | — |
 | M1-8 | web_search 网络搜索工具 | [x] | — |
 | M1-9 | web_fetch 网页抓取工具 | [x] | — |
-| M1-10 | 工具注册 + harness 集成 | [ ] | M1-1 ~ M1-9 |
+| M1-10 | 工具注册 + harness 集成 | [x] | M1-1 ~ M1-9 |
 | M1-11 | 前端工具调用状态展示 (ToolCall.vue) | [ ] | M1-10 |
 | M1-12 | 端到端集成验证 | [ ] | 全部 |
 
@@ -372,9 +372,9 @@ export function createAllTools(env: ExecutionEnv): AgentTool[] {
 
 ### 验收条件
 
-- [ ] `createAllTools(env)` 返回 9 个 AgentTool
-- [ ] harness 构造时 tools 参数正确传入
-- [ ] TypeScript 编译通过
+- [x] `createAllTools(env)` 返回 9 个 AgentTool
+- [x] harness 构造时 tools 参数正确传入
+- [x] TypeScript 编译通过
 
 ---
 

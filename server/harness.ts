@@ -3,6 +3,7 @@ import { NodeExecutionEnv } from "@earendil-works/pi-agent-core/node";
 import { JsonlSessionRepo } from "@earendil-works/pi-agent-core";
 import { getModel, type Model } from "@earendil-works/pi-ai";
 import type { Session, JsonlSessionMetadata } from "@earendil-works/pi-agent-core";
+import { createAllTools } from "../tools/index.js";
 
 export interface CreateHarnessOptions {
   provider: string;
@@ -35,7 +36,7 @@ export async function createHarness(options: CreateHarnessOptions) {
     env,
     session,
     model,
-    tools: [],
+    tools: createAllTools(env),
     systemPrompt: options.systemPrompt || DEFAULT_SYSTEM_PROMPT,
     getApiKeyAndHeaders: async () => ({ apiKey: options.apiKey }),
   });
