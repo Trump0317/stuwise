@@ -12,6 +12,7 @@ describe("useAgent._handleEvent", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     agent = useAgent();
   });
 
@@ -134,6 +135,7 @@ describe("useAgent — 状态操作", () => {
   let agent: ReturnType<typeof useAgent>;
 
   beforeEach(() => {
+    localStorage.clear();
     agent = useAgent();
   });
 

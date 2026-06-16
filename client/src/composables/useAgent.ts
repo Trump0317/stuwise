@@ -1,14 +1,33 @@
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import type { ChatMessage } from "../types";
 import { nextId } from "../types";
 
+const STORAGE_KEY = "stuwise-messages";
+
+function loadMessages(): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return [];
+}
+
+function saveMessages(messages: ChatMessage[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  } catch { /* quota exceeded, ignore */ }
+}
+
 export function useAgent() {
-  const messages = ref<ChatMessage[]>([]);
+  const messages = ref<ChatMessage[]>(loadMessages());
   const isRunning = ref(false);
   const error = ref<string | null>(null);
 
   let eventSource: EventSource | null = null;
   let currentAssistantId: string | null = null;
+
+  // 消息变化时自动持久化
+  watch(messages, (val) => saveMessages(val), { deep: true });
 
   async function send(text: string): Promise<void> {
     if (isRunning.value) return;
@@ -34,14 +53,11 @@ export function useAgent() {
       try {
         const event = JSON.parse(e.data);
         handleEvent(event);
-      } catch {
-        // 忽略解析错误
-      }
+      } catch { /* ignore */ }
     };
 
     eventSource.onerror = () => {
-      eventSource?.close();
-      eventSource = null;
+      cleanupEventSource();
       isRunning.value = false;
       if (currentAssistantId) {
         messages.value = messages.value.map((m) =>
@@ -51,7 +67,6 @@ export function useAgent() {
       error.value = "连接断开，请重试";
     };
 
-    // 发送请求
     try {
       const res = await fetch("/api/prompt", {
         method: "POST",
@@ -61,21 +76,27 @@ export function useAgent() {
       const data = await res.json();
       if (!data.ok) {
         error.value = data.error || "请求失败";
-        if (eventSource) {
-          eventSource.onmessage = null;
-          eventSource.close();
-          eventSource = null;
-        }
+        cleanupEventSource();
+        isRunning.value = false;
+      }
+      // 后端返回 stopReason: "error" 且无 assistant 消息时展示错误
+      else if (data.stopReason === "error" && !currentAssistantId) {
+        error.value = "AI 请求失败，请检查 API Key 或网络";
+        cleanupEventSource();
         isRunning.value = false;
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : "网络错误";
-      if (eventSource) {
-        eventSource.onmessage = null;
-        eventSource.close();
-        eventSource = null;
-      }
+      cleanupEventSource();
       isRunning.value = false;
+    }
+  }
+
+  function cleanupEventSource() {
+    if (eventSource) {
+      eventSource.onmessage = null;
+      eventSource.close();
+      eventSource = null;
     }
   }
 
@@ -122,16 +143,14 @@ export function useAgent() {
 
       case "agent_end":
         isRunning.value = false;
-        eventSource?.close();
-        eventSource = null;
+        cleanupEventSource();
         break;
     }
   }
 
   function abort(): void {
     fetch("/api/abort", { method: "POST" }).catch(() => {});
-    eventSource?.close();
-    eventSource = null;
+    cleanupEventSource();
 
     if (currentAssistantId) {
       messages.value = messages.value.map((m) =>
