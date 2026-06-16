@@ -8,7 +8,7 @@
 |---|------|------|------|
 | M1-1 | read 文件读取工具 | [x] | — |
 | M1-2 | write 文件写入工具 | [x] | — |
-| M1-3 | edit 文件编辑工具 | [ ] | — |
+| M1-3 | edit 文件编辑工具 | [x] | — |
 | M1-4 | ls 目录列出工具 | [ ] | — |
 | M1-5 | grep 文本搜索工具 | [ ] | — |
 | M1-6 | find 文件名查找工具 | [ ] | — |
@@ -184,12 +184,12 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试
-- [ ] 单次替换正确
-- [ ] 多次替换正确（每个 oldText 唯一匹配）
-- [ ] oldText 不唯一时抛出错误
-- [ ] oldText 未找到时抛出错误
-- [ ] edits 数组空时无操作
+- [x] 通过单元测试
+- [x] 单次替换正确
+- [x] 多次替换正确（每个 oldText 唯一匹配）
+- [x] oldText 不唯一时抛出错误
+- [x] oldText 未找到时抛出错误
+- [x] edits 数组空时无操作
 
 ---
 
