@@ -6,7 +6,7 @@
 
 | # | 任务 | 状态 | 依赖 |
 |---|------|------|------|
-| M1-1 | read 文件读取工具 | [ ] | — |
+| M1-1 | read 文件读取工具 | [x] | — |
 | M1-2 | write 文件写入工具 | [ ] | — |
 | M1-3 | edit 文件编辑工具 | [ ] | — |
 | M1-4 | ls 目录列出工具 | [ ] | — |
@@ -140,11 +140,11 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock ExecutionEnv）
-- [ ] 正常读取文件返回内容
-- [ ] 文件不存在时抛出错误（AgentTool 约定：执行异常 → 自动标记 isError）
-- [ ] 大文件自动截断
-- [ ] offset/limit 分片正确
+- [x] 通过单元测试（mock ExecutionEnv）
+- [x] 正常读取文件返回内容
+- [x] 文件不存在时抛出错误（AgentTool 约定：执行异常 → 自动标记 isError）
+- [x] 大文件自动截断
+- [x] offset/limit 分片正确
 
 ---
 
