@@ -1,4 +1,4 @@
-# M2：Skill 系统 `[ ]`
+# M2：Skill 系统 `[x]`
 
 > 目标：实现 Skill 全链路 — 加载 → System Prompt 注入 → 前端可见 → Agent 使用。
 
@@ -8,7 +8,7 @@
 |---|------|------|------|
 | M2-1 | Skill 加载器 + harness 集成 | [x] | — |
 | M2-2 | 前端 Skill 列表展示 | [x] | M2-1 |
-| M2-3 | 端到端集成验证 | [ ] | 全部 |
+| M2-3 | 端到端集成验证 | [x] | 全部 |
 
 ---
 
@@ -168,8 +168,8 @@ description: Manage student notes in data/notes/ — create, read, edit, search 
 
 ### 验证清单
 
-- [ ] `npm run dev` 启动
-- [ ] Skill 标签在页面可见
-- [ ] 发送「帮我创建一个数学笔记：今天学了微积分」→ Agent 使用 note-management Skill + write 工具
-- [ ] Console 无错误
-- [ ] bug 记录到 spec/bug/M2-bug.md
+- [x] `npm run dev` 启动
+- [x] Skill 标签在页面可见
+- [x] 发送「帮我创建一个数学笔记：今天学了微积分」→ Agent 使用 note-management Skill + write 工具
+- [x] Console 无错误
+- [x] bug 记录到 spec/bug/M2-bug.md
