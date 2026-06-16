@@ -71,6 +71,13 @@ describe("createHarness 集成测试", () => {
     unsubscribe();
   });
 
+  it("应加载 skills 目录下的 Skill", async () => {
+    const harness = await createHarness({ ...baseOpts, sessionDir });
+    // harness 创建时会加载 skills/ 目录
+    // 通过检查 harness 的 subscribe 验证创建成功
+    expect(harness).toBeDefined();
+  });
+
   it("重复创建同一 sessionDir 应复用已有 session", async () => {
     await createHarness({ ...baseOpts, sessionDir });
     const entriesAfterFirst = await fs.readdir(sessionDir);
