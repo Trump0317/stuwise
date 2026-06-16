@@ -12,7 +12,7 @@
 | M1-4 | ls 目录列出工具 | [~] | — |
 | M1-5 | grep 文本搜索工具 | [x] | — |
 | M1-6 | find 文件名查找工具 | [~] | — |
-| M1-7 | bash 命令执行工具 | [ ] | — |
+| M1-7 | bash 命令执行工具 | [x] | — |
 | M1-8 | web_search 网络搜索工具 | [ ] | — |
 | M1-9 | web_fetch 网页抓取工具 | [ ] | — |
 | M1-10 | 工具注册 + harness 集成 | [ ] | M1-1 ~ M1-9 |
@@ -281,10 +281,10 @@ return {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock ExecutionEnv.exec）
-- [ ] 正常执行返回 stdout
-- [ ] 超时时抛出错误
-- [ ] 命令失败时返回 exitCode + stderr
+- [x] 通过单元测试（mock ExecutionEnv.exec）
+- [x] 正常执行返回 stdout
+- [x] 超时时抛出错误
+- [x] 命令失败时返回 exitCode + stderr
 
 ---
 
