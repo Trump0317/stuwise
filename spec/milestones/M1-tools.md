@@ -16,7 +16,7 @@
 | M1-8 | web_search 网络搜索工具 | [x] | — |
 | M1-9 | web_fetch 网页抓取工具 | [x] | — |
 | M1-10 | 工具注册 + harness 集成 | [x] | M1-1 ~ M1-9 |
-| M1-11 | 前端工具调用状态展示 (ToolCall.vue) | [ ] | M1-10 |
+| M1-11 | 前端工具调用状态展示 (ToolCall.vue) | [~] | M1-10 |
 | M1-12 | 端到端集成验证 | [ ] | 全部 |
 
 ---
@@ -446,10 +446,10 @@ case "tool_execution_end":
 
 ### 验收条件
 
-- [ ] ToolCall.vue 正确渲染 tool_execution_start 事件
-- [ ] running → done/error 状态切换流畅
-- [ ] 工具结果可折叠/展开
-- [ ] 样式与其他消息协调
+- [x] ToolCall.vue 正确渲染 tool_execution_start 事件
+- [x] running → done/error 状态切换流畅
+- [x] 工具结果可折叠/展开
+- [x] 样式与其他消息协调
 
 ---
 

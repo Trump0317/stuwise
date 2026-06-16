@@ -1,6 +1,18 @@
 import { ref, watch } from "vue";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, ToolCallStatus } from "../types";
 import { nextId } from "../types";
+
+const TOOL_LABELS: Record<string, string> = {
+  read: "读取文件",
+  write: "写入文件",
+  edit: "编辑文件",
+  ls: "列出目录",
+  grep: "搜索文本",
+  find: "查找文件",
+  bash: "执行命令",
+  web_search: "搜索网络",
+  web_fetch: "抓取网页",
+};
 
 const STORAGE_KEY = "stuwise-messages";
 
@@ -20,6 +32,7 @@ function saveMessages(messages: ChatMessage[]) {
 
 export function useAgent() {
   const messages = ref<ChatMessage[]>(loadMessages());
+  const toolCalls = ref<ToolCallStatus[]>([]);
   const isRunning = ref(false);
   const error = ref<string | null>(null);
 
@@ -100,6 +113,14 @@ export function useAgent() {
     }
   }
 
+  function extractToolResult(result: any): string {
+    if (!result?.content) return "";
+    const texts = result.content
+      .filter((c: any) => c.type === "text")
+      .map((c: any) => c.text as string);
+    return texts.join("\n").slice(0, 500);
+  }
+
   function handleEvent(event: any) {
     switch (event.type) {
       case "agent_start":
@@ -145,6 +166,27 @@ export function useAgent() {
         isRunning.value = false;
         cleanupEventSource();
         break;
+
+      case "tool_execution_start":
+        toolCalls.value = [...toolCalls.value, {
+          id: event.toolCallId,
+          name: event.toolName,
+          label: TOOL_LABELS[event.toolName] || event.toolName,
+          state: "running",
+        }];
+        break;
+
+      case "tool_execution_end":
+        toolCalls.value = toolCalls.value.map((tc) =>
+          tc.id === event.toolCallId
+            ? {
+              ...tc,
+              state: event.isError ? "error" : "done",
+              result: extractToolResult(event.result),
+            }
+            : tc,
+        );
+        break;
     }
   }
 
@@ -164,5 +206,5 @@ export function useAgent() {
     error.value = null;
   }
 
-  return { messages, isRunning, error, send, abort, clearError, _handleEvent: handleEvent };
+  return { messages, toolCalls, isRunning, error, send, abort, clearError, _handleEvent: handleEvent };
 }

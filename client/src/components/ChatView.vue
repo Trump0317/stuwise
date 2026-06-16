@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from "vue";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, ToolCallStatus } from "../types";
+import ToolCall from "./ToolCall.vue";
 
 const props = defineProps<{
   messages: ChatMessage[];
+  toolCalls: ToolCallStatus[];
   isRunning: boolean;
 }>();
 
@@ -34,6 +36,11 @@ watch(
         <span v-if="msg.isStreaming" class="cursor">|</span>
       </div>
     </div>
+    <ToolCall
+      v-for="tc in toolCalls"
+      :key="tc.id"
+      :status="tc"
+    />
   </div>
 </template>
 
