@@ -11,7 +11,7 @@
 | M1-3 | edit 文件编辑工具 | [x] | — |
 | M1-4 | ls 目录列出工具 | [~] | — |
 | M1-5 | grep 文本搜索工具 | [x] | — |
-| M1-6 | find 文件名查找工具 | [ ] | — |
+| M1-6 | find 文件名查找工具 | [~] | — |
 | M1-7 | bash 命令执行工具 | [ ] | — |
 | M1-8 | web_search 网络搜索工具 | [ ] | — |
 | M1-9 | web_fetch 网页抓取工具 | [ ] | — |
@@ -250,11 +250,11 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock `env.listDir` 递归）
-- [ ] 简单通配符匹配正确（`*.md`、`test*.ts` 等）
-- [ ] 递归搜索子目录
-- [ ] 无匹配时返回空
-- [ ] 路径不存在时抛出错误
+- [x] 通过单元测试（mock `env.listDir` 递归）
+- [x] 简单通配符匹配正确（`*.md`、`test*.ts` 等）
+- [x] 递归搜索子目录
+- [x] 无匹配时返回空
+- [x] 路径不存在时抛出错误
 
 ---
 
