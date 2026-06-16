@@ -9,7 +9,7 @@
 | M1-1 | read 文件读取工具 | [x] | — |
 | M1-2 | write 文件写入工具 | [x] | — |
 | M1-3 | edit 文件编辑工具 | [x] | — |
-| M1-4 | ls 目录列出工具 | [ ] | — |
+| M1-4 | ls 目录列出工具 | [~] | — |
 | M1-5 | grep 文本搜索工具 | [ ] | — |
 | M1-6 | find 文件名查找工具 | [ ] | — |
 | M1-7 | bash 命令执行工具 | [ ] | — |
@@ -207,10 +207,10 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock `env.listDir` 返回 `FileInfo[]`）
-- [ ] 列出文件和子目录，区分 file/directory
-- [ ] 路径不存在时抛出错误（Result.ok === false）
-- [ ] 空目录返回空列表
+- [x] 通过单元测试（mock `env.listDir` 返回 `FileInfo[]`）
+- [x] 列出文件和子目录，区分 file/directory
+- [x] 路径不存在时抛出错误（Result.ok === false）
+- [x] 空目录返回空列表
 
 ---
 
