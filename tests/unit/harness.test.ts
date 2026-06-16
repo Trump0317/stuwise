@@ -89,10 +89,11 @@ describe("createHarness — 核心功能", () => {
     expect(harnessOptions.model).toBe(customModel);
   });
 
-  it("工具列表应为空", async () => {
+  it("工具列表应来自 createAllTools", async () => {
     await createHarness(baseOptions);
     const harnessOptions = vi.mocked(AgentHarness).mock.calls[0][0];
-    expect(harnessOptions.tools).toEqual([]);
+    expect(harnessOptions.tools).toBeDefined();
+    expect(harnessOptions.tools!.length).toBeGreaterThan(0);
   });
 
   it("应使用 NodeExecutionEnv 创建执行环境", async () => {

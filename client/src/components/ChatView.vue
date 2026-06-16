@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from "vue";
-import type { ChatMessage } from "../types";
+import type { TimelineItem } from "../types";
+import ToolCall from "./ToolCall.vue";
 
 const props = defineProps<{
-  messages: ChatMessage[];
+  timeline: TimelineItem[];
   isRunning: boolean;
 }>();
 
 const listRef = ref<HTMLElement>();
 
 watch(
-  () => props.messages.length,
+  () => props.timeline.length,
   async () => {
     await nextTick();
     if (listRef.value) {
@@ -22,18 +23,23 @@ watch(
 
 <template>
   <div ref="listRef" class="chat-view">
-    <div
-      v-for="msg in messages"
-      :key="msg.id"
-      class="message"
-      :class="msg.role"
-    >
-      <div class="avatar">{{ msg.role === "user" ? "我" : "AI" }}</div>
-      <div class="bubble">
-        <div class="content">{{ msg.content }}</div>
-        <span v-if="msg.isStreaming" class="cursor">|</span>
+    <template v-for="item in timeline" :key="item.id">
+      <div
+        v-if="item.kind === 'message' && item.message"
+        class="message"
+        :class="item.message.role"
+      >
+        <div class="avatar">{{ item.message.role === "user" ? "我" : "AI" }}</div>
+        <div class="bubble">
+          <div class="content">{{ item.message.content }}</div>
+          <span v-if="item.message.isStreaming" class="cursor">|</span>
+        </div>
       </div>
-    </div>
+      <ToolCall
+        v-else-if="item.kind === 'tool' && item.tool"
+        :status="item.tool"
+      />
+    </template>
   </div>
 </template>
 

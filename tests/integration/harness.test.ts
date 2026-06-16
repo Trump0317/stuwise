@@ -57,10 +57,10 @@ describe("createHarness 集成测试", () => {
     expect(model.id).toBe("test-model");
   });
 
-  it("getTools 应返回空数组", async () => {
+  it("getTools 应返回 9 个工具", async () => {
     const harness = await createHarness({ ...baseOpts, sessionDir });
     const tools = harness.getTools();
-    expect(tools).toEqual([]);
+    expect(tools.length).toBe(9);
   });
 
   it("subscribe 应返回取消订阅函数", async () => {

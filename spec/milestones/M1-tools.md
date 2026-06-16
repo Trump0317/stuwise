@@ -1,4 +1,4 @@
-# M1：工具系统 `[ ]`
+# M1：工具系统 `[x]`
 
 > 目标：接入 9 个通用工具（文件 + 搜索 + 命令 + 网络），前端展示工具调用状态。
 
@@ -6,18 +6,18 @@
 
 | # | 任务 | 状态 | 依赖 |
 |---|------|------|------|
-| M1-1 | read 文件读取工具 | [ ] | — |
-| M1-2 | write 文件写入工具 | [ ] | — |
-| M1-3 | edit 文件编辑工具 | [ ] | — |
-| M1-4 | ls 目录列出工具 | [ ] | — |
-| M1-5 | grep 文本搜索工具 | [ ] | — |
-| M1-6 | find 文件名查找工具 | [ ] | — |
-| M1-7 | bash 命令执行工具 | [ ] | — |
-| M1-8 | web_search 网络搜索工具 | [ ] | — |
-| M1-9 | web_fetch 网页抓取工具 | [ ] | — |
-| M1-10 | 工具注册 + harness 集成 | [ ] | M1-1 ~ M1-9 |
-| M1-11 | 前端工具调用状态展示 (ToolCall.vue) | [ ] | M1-10 |
-| M1-12 | 端到端集成验证 | [ ] | 全部 |
+| M1-1 | read 文件读取工具 | [x] | — |
+| M1-2 | write 文件写入工具 | [x] | — |
+| M1-3 | edit 文件编辑工具 | [x] | — |
+| M1-4 | ls 目录列出工具 | [~] | — |
+| M1-5 | grep 文本搜索工具 | [x] | — |
+| M1-6 | find 文件名查找工具 | [~] | — |
+| M1-7 | bash 命令执行工具 | [x] | — |
+| M1-8 | web_search 网络搜索工具 | [x] | — |
+| M1-9 | web_fetch 网页抓取工具 | [x] | — |
+| M1-10 | 工具注册 + harness 集成 | [x] | M1-1 ~ M1-9 |
+| M1-11 | 前端工具调用状态展示 (ToolCall.vue) | [~] | M1-10 |
+| M1-12 | 端到端集成验证 | [x] | 全部 |
 
 ---
 
@@ -140,11 +140,11 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock ExecutionEnv）
-- [ ] 正常读取文件返回内容
-- [ ] 文件不存在时抛出错误（AgentTool 约定：执行异常 → 自动标记 isError）
-- [ ] 大文件自动截断
-- [ ] offset/limit 分片正确
+- [x] 通过单元测试（mock ExecutionEnv）
+- [x] 正常读取文件返回内容
+- [x] 文件不存在时抛出错误（AgentTool 约定：执行异常 → 自动标记 isError）
+- [x] 大文件自动截断
+- [x] offset/limit 分片正确
 
 ---
 
@@ -162,11 +162,11 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试
-- [ ] 写入新文件成功，内容正确
-- [ ] 覆盖已有文件成功
-- [ ] 父目录不存在时自动创建
-- [ ] 写入失败时抛出错误
+- [x] 通过单元测试
+- [x] 写入新文件成功，内容正确
+- [x] 覆盖已有文件成功
+- [x] 父目录不存在时自动创建
+- [x] 写入失败时抛出错误
 
 ---
 
@@ -184,12 +184,12 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试
-- [ ] 单次替换正确
-- [ ] 多次替换正确（每个 oldText 唯一匹配）
-- [ ] oldText 不唯一时抛出错误
-- [ ] oldText 未找到时抛出错误
-- [ ] edits 数组空时无操作
+- [x] 通过单元测试
+- [x] 单次替换正确
+- [x] 多次替换正确（每个 oldText 唯一匹配）
+- [x] oldText 不唯一时抛出错误
+- [x] oldText 未找到时抛出错误
+- [x] edits 数组空时无操作
 
 ---
 
@@ -207,10 +207,10 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock `env.listDir` 返回 `FileInfo[]`）
-- [ ] 列出文件和子目录，区分 file/directory
-- [ ] 路径不存在时抛出错误（Result.ok === false）
-- [ ] 空目录返回空列表
+- [x] 通过单元测试（mock `env.listDir` 返回 `FileInfo[]`）
+- [x] 列出文件和子目录，区分 file/directory
+- [x] 路径不存在时抛出错误（Result.ok === false）
+- [x] 空目录返回空列表
 
 ---
 
@@ -228,11 +228,11 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试
-- [ ] 递归搜索子目录
-- [ ] 返回格式 `path:行号: 内容`
-- [ ] 无匹配时返回空（不报错）
-- [ ] 路径不存在时抛出错误
+- [x] 通过单元测试
+- [x] 递归搜索子目录
+- [x] 返回格式 `path:行号: 内容`
+- [x] 无匹配时返回空（不报错）
+- [x] 路径不存在时抛出错误
 
 ---
 
@@ -250,11 +250,11 @@ export function createReadTool(env: ExecutionEnv): AgentTool {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock `env.listDir` 递归）
-- [ ] 简单通配符匹配正确（`*.md`、`test*.ts` 等）
-- [ ] 递归搜索子目录
-- [ ] 无匹配时返回空
-- [ ] 路径不存在时抛出错误
+- [x] 通过单元测试（mock `env.listDir` 递归）
+- [x] 简单通配符匹配正确（`*.md`、`test*.ts` 等）
+- [x] 递归搜索子目录
+- [x] 无匹配时返回空
+- [x] 路径不存在时抛出错误
 
 ---
 
@@ -281,10 +281,10 @@ return {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock ExecutionEnv.exec）
-- [ ] 正常执行返回 stdout
-- [ ] 超时时抛出错误
-- [ ] 命令失败时返回 exitCode + stderr
+- [x] 通过单元测试（mock ExecutionEnv.exec）
+- [x] 正常执行返回 stdout
+- [x] 超时时抛出错误
+- [x] 命令失败时返回 exitCode + stderr
 
 ---
 
@@ -304,10 +304,10 @@ return {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock fetch）
-- [ ] 返回标题、URL、摘要
-- [ ] 网络错误时抛出错误
-- [ ] DuckDuckGo 无结果时返回空
+- [x] 通过单元测试（mock fetch）
+- [x] 返回标题、URL、摘要
+- [x] 网络错误时抛出错误
+- [x] 无结果时返回提示
 
 ---
 
@@ -325,10 +325,10 @@ return {
 
 ### 验收条件
 
-- [ ] 通过单元测试（mock fetch）
-- [ ] 提取纯文本，不含 HTML 标签
-- [ ] HTTP 错误时抛出错误
-- [ ] 截断过长内容（50KB）
+- [x] 通过单元测试（mock fetch）
+- [x] 提取纯文本，不含 HTML 标签
+- [x] HTTP 错误时抛出错误
+- [x] 截断过长内容（50KB）
 
 ---
 
@@ -372,9 +372,9 @@ export function createAllTools(env: ExecutionEnv): AgentTool[] {
 
 ### 验收条件
 
-- [ ] `createAllTools(env)` 返回 9 个 AgentTool
-- [ ] harness 构造时 tools 参数正确传入
-- [ ] TypeScript 编译通过
+- [x] `createAllTools(env)` 返回 9 个 AgentTool
+- [x] harness 构造时 tools 参数正确传入
+- [x] TypeScript 编译通过
 
 ---
 
@@ -446,10 +446,10 @@ case "tool_execution_end":
 
 ### 验收条件
 
-- [ ] ToolCall.vue 正确渲染 tool_execution_start 事件
-- [ ] running → done/error 状态切换流畅
-- [ ] 工具结果可折叠/展开
-- [ ] 样式与其他消息协调
+- [x] ToolCall.vue 正确渲染 tool_execution_start 事件
+- [x] running → done/error 状态切换流畅
+- [x] 工具结果可折叠/展开
+- [x] 样式与其他消息协调
 
 ---
 

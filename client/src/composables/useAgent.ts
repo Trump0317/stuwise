@@ -1,6 +1,18 @@
 import { ref, watch } from "vue";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, ToolCallStatus, TimelineItem } from "../types";
 import { nextId } from "../types";
+
+const TOOL_LABELS: Record<string, string> = {
+  read: "读取文件",
+  write: "写入文件",
+  edit: "编辑文件",
+  ls: "列出目录",
+  grep: "搜索文本",
+  find: "查找文件",
+  bash: "执行命令",
+  web_search: "搜索网络",
+  web_fetch: "抓取网页",
+};
 
 const STORAGE_KEY = "stuwise-messages";
 
@@ -18,16 +30,23 @@ function saveMessages(messages: ChatMessage[]) {
   } catch { /* quota exceeded, ignore */ }
 }
 
+function toTimeline(msgs: ChatMessage[]): TimelineItem[] {
+  return msgs.map((m) => ({ id: m.id, kind: "message" as const, message: m, tool: null }));
+}
+
 export function useAgent() {
-  const messages = ref<ChatMessage[]>(loadMessages());
+  const timeline = ref<TimelineItem[]>(toTimeline(loadMessages()));
   const isRunning = ref(false);
   const error = ref<string | null>(null);
 
   let eventSource: EventSource | null = null;
   let currentAssistantId: string | null = null;
 
-  // 消息变化时自动持久化
-  watch(messages, (val) => saveMessages(val), { deep: true });
+  // 持久化消息（tool 不入 localStorage）
+  watch(timeline, (val) => {
+    const msgs = val.filter((t) => t.kind === "message").map((t) => t.message!);
+    saveMessages(msgs);
+  }, { deep: true });
 
   async function send(text: string): Promise<void> {
     if (isRunning.value) return;
@@ -35,15 +54,13 @@ export function useAgent() {
     error.value = null;
 
     // 添加用户消息
-    messages.value = [
-      ...messages.value,
-      {
-        id: nextId(),
-        role: "user",
-        content: text,
-        timestamp: Date.now(),
-      },
-    ];
+    const userMsg: ChatMessage = {
+      id: nextId(),
+      role: "user",
+      content: text,
+      timestamp: Date.now(),
+    };
+    timeline.value = [...timeline.value, { id: userMsg.id, kind: "message", message: userMsg, tool: null }];
 
     // 建立 SSE 连接
     eventSource = new EventSource("/api/events");
@@ -60,12 +77,17 @@ export function useAgent() {
       cleanupEventSource();
       isRunning.value = false;
       if (currentAssistantId) {
-        messages.value = messages.value.map((m) =>
-          m.id === currentAssistantId ? { ...m, isStreaming: false } : m
+        timeline.value = timeline.value.map((t) =>
+          t.kind === "message" && t.message!.id === currentAssistantId
+            ? { ...t, message: { ...t.message!, isStreaming: false } }
+            : t
         );
       }
       error.value = "连接断开，请重试";
     };
+
+    // 等待 SSE 连接建立
+    await new Promise((r) => setTimeout(r, 300));
 
     try {
       const res = await fetch("/api/prompt", {
@@ -100,6 +122,14 @@ export function useAgent() {
     }
   }
 
+  function extractToolResult(result: any): string {
+    if (!result?.content) return "";
+    const texts = result.content
+      .filter((c: any) => c.type === "text")
+      .map((c: any) => c.text as string);
+    return texts.join("\n").slice(0, 500);
+  }
+
   function handleEvent(event: any) {
     switch (event.type) {
       case "agent_start":
@@ -108,17 +138,20 @@ export function useAgent() {
         break;
 
       case "message_start": {
-        currentAssistantId = nextId();
-        messages.value = [
-          ...messages.value,
-          {
+        const msg = event.message;
+        if (msg.role === "assistant") {
+          currentAssistantId = nextId();
+          const assistantMsg: ChatMessage = {
             id: currentAssistantId,
             role: "assistant",
             content: "",
             timestamp: Date.now(),
             isStreaming: true,
-          },
-        ];
+          };
+          timeline.value = [...timeline.value, { id: currentAssistantId, kind: "message", message: assistantMsg, tool: null }];
+        } else if (msg.role === "user") {
+          // 用户消息已在前端手动添加，跳过
+        }
         break;
       }
 
@@ -126,24 +159,55 @@ export function useAgent() {
         if (!currentAssistantId) return;
         const ae = event.assistantMessageEvent;
         if (ae?.type === "text_delta" && typeof ae.delta === "string") {
-          messages.value = messages.value.map((m) =>
-            m.id === currentAssistantId
-              ? { ...m, content: m.content + ae.delta }
-              : m
+          timeline.value = timeline.value.map((t) =>
+            t.kind === "message" && t.message!.id === currentAssistantId
+              ? { ...t, message: { ...t.message!, content: t.message!.content + ae.delta } }
+              : t
           );
         }
         break;
       }
 
       case "message_end":
-        messages.value = messages.value.map((m) =>
-          m.id === currentAssistantId ? { ...m, isStreaming: false } : m
+        timeline.value = timeline.value.map((t) =>
+          t.kind === "message" && t.message!.id === currentAssistantId
+            ? { ...t, message: { ...t.message!, isStreaming: false } }
+            : t
         );
         break;
 
       case "agent_end":
         isRunning.value = false;
         cleanupEventSource();
+        break;
+
+      case "tool_execution_start":
+        timeline.value = [...timeline.value, {
+          id: event.toolCallId,
+          kind: "tool",
+          message: null,
+          tool: {
+            id: event.toolCallId,
+            name: event.toolName,
+            label: TOOL_LABELS[event.toolName] || event.toolName,
+            state: "running",
+          },
+        }];
+        break;
+
+      case "tool_execution_end":
+        timeline.value = timeline.value.map((t) =>
+          t.kind === "tool" && t.tool!.id === event.toolCallId
+            ? {
+              ...t,
+              tool: {
+                ...t.tool!,
+                state: event.isError ? "error" : "done",
+                result: extractToolResult(event.result),
+              },
+            }
+            : t,
+        );
         break;
     }
   }
@@ -153,8 +217,10 @@ export function useAgent() {
     cleanupEventSource();
 
     if (currentAssistantId) {
-      messages.value = messages.value.map((m) =>
-        m.id === currentAssistantId ? { ...m, isStreaming: false } : m
+      timeline.value = timeline.value.map((t) =>
+        t.kind === "message" && t.message!.id === currentAssistantId
+          ? { ...t, message: { ...t.message!, isStreaming: false } }
+          : t
       );
     }
     isRunning.value = false;
@@ -164,5 +230,5 @@ export function useAgent() {
     error.value = null;
   }
 
-  return { messages, isRunning, error, send, abort, clearError, _handleEvent: handleEvent };
+  return { timeline, isRunning, error, send, abort, clearError, _handleEvent: handleEvent };
 }

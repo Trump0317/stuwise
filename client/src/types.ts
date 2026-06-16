@@ -6,6 +6,21 @@ export interface ChatMessage {
   isStreaming?: boolean;
 }
 
+export interface ToolCallStatus {
+  id: string;
+  name: string;
+  label: string;
+  state: "running" | "done" | "error";
+  result?: string;
+}
+
+export interface TimelineItem {
+  id: string;
+  kind: "message" | "tool";
+  message: ChatMessage | null;
+  tool: ToolCallStatus | null;
+}
+
 export interface AgentError {
   message: string;
   timestamp: number;
