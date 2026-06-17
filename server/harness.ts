@@ -57,6 +57,10 @@ export function getHarness(): AgentHarness {
 
 // === compact 检查 ===
 
+export function getCurrentSessionPath(): string | null {
+  return currentSessionPath;
+}
+
 export async function shouldCompact(): Promise<boolean> {
   if (!currentSessionPath) return false;
   try {

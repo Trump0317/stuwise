@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 
 const props = defineProps<{
   isRunning: boolean;
@@ -11,6 +11,21 @@ const emit = defineEmits<{
 }>();
 
 const text = ref("");
+const tokenCount = ref(0);
+
+async function fetchTokens() {
+  try {
+    const res = await fetch("/api/health");
+    const data = await res.json();
+    tokenCount.value = data.tokens || 0;
+  } catch { /* ignore */ }
+}
+
+onMounted(() => {
+  fetchTokens();
+  const timer = setInterval(fetchTokens, 15000);
+  return () => clearInterval(timer);
+});
 
 function handleSend() {
   const trimmed = text.value.trim();
@@ -61,6 +76,7 @@ watch(
     >
       停止
     </button>
+    <span class="token-info" v-if="tokenCount > 0">~{{ tokenCount }} tokens</span>
   </div>
 </template>
 
@@ -128,5 +144,12 @@ watch(
 
 .btn-stop:hover {
   background: #dc2626;
+}
+
+.token-info {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  align-self: center;
 }
 </style>
