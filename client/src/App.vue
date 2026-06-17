@@ -15,9 +15,7 @@ const {
   steer, toggleSkill,
 } = useAgent();
 
-onMounted(() => {
-  init();
-});
+onMounted(() => { init(); });
 
 function handleSend(text: string) {
   send(text);

@@ -58,7 +58,7 @@ describe("POST /api/prompt", () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toEqual({ ok: true, stopReason: "stop" });
+    expect(json).toEqual({ ok: true, data: { stopReason: "stop" } });
     expect(harness.prompt).toHaveBeenCalledWith("你好");
   });
 

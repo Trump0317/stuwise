@@ -1,138 +1,57 @@
 import { ref } from "vue";
-import type { ChatMessage, TimelineItem, SessionInfo } from "../types";
+import type { ChatMessage, TimelineItem } from "../types";
 import { nextId } from "../types";
-
-const TOOL_LABELS: Record<string, string> = {
-  read: "读取文件",
-  write: "写入文件",
-  edit: "编辑文件",
-  ls: "列出目录",
-  grep: "搜索文本",
-  find: "查找文件",
-  bash: "执行命令",
-  web_search: "搜索网络",
-  web_fetch: "抓取网页",
-};
+import { TOOL_LABELS } from "./constants";
+import { useSession } from "./useSession";
+import { useSkills } from "./useSkills";
 
 function toTimeline(msgs: ChatMessage[]): TimelineItem[] {
   return msgs.map((m) => ({ id: m.id, kind: "message" as const, message: m, tool: null }));
 }
 
+function extractToolResult(result: any): string {
+  if (!result?.content) return "";
+  const texts = result.content
+    .filter((c: any) => c.type === "text")
+    .map((c: any) => c.text as string);
+  return texts.join("\n").slice(0, 500);
+}
+
 export function useAgent() {
   const timeline = ref<TimelineItem[]>([]);
-  const sessions = ref<SessionInfo[]>([]);
-  const currentSessionId = ref<string | null>(null);
-  const skills = ref<Array<{ name: string; description: string; enabled: boolean }>>([]);
   const isRunning = ref(false);
   const error = ref<string | null>(null);
+
+  const session = useSession();
+  const skill = useSkills();
 
   let eventSource: EventSource | null = null;
   let currentAssistantId: string | null = null;
 
-  // === Session 管理 ===
-
-  async function fetchSessions() {
-    try {
-      const res = await fetch("/api/session");
-      const data = await res.json();
-      sessions.value = data.sessions || [];
-    } catch { /* ignore */ }
-  }
-
-  async function loadSession(id: string) {
-    try {
-      const res = await fetch(`/api/session/${id}`);
-      const data = await res.json();
-      const messages: ChatMessage[] = (data.messages || []).map((m: any) => ({
-        id: nextId(),
-        role: m.role,
-        content: typeof m.content === "string"
-          ? m.content
-          : m.content?.map((c: any) => c.text || "").join("") || "",
-        timestamp: m.timestamp || Date.now(),
-      }));
-      timeline.value = toTimeline(messages);
-      currentSessionId.value = id;
-    } catch (e) {
-      error.value = "加载会话历史失败";
-    }
-  }
-
-  async function createSession() {
-    try {
-      const res = await fetch("/api/session", { method: "POST" });
-      const data = await res.json();
-      if (data.session) {
-        sessions.value = [data.session, ...sessions.value];
-        await switchSession(data.session.id);
-      }
-    } catch { /* ignore */ }
-  }
-
-  async function deleteSession(id: string) {
-    try {
-      await fetch(`/api/session/${id}`, { method: "DELETE" });
-      sessions.value = sessions.value.filter((s) => s.id !== id);
-      if (currentSessionId.value === id) {
-        // 切换到第一个剩余 session，或清空
-        const next = sessions.value[0];
-        if (next) {
-          await loadSession(next.id);
-        } else {
-          timeline.value = [];
-          currentSessionId.value = null;
-        }
-      }
-    } catch { /* ignore */ }
-  }
-
-  async function switchSession(id: string) {
-    try {
-      await fetch(`/api/session/${id}`, { method: "PUT" });
-      await loadSession(id);
-    } catch (e) {
-      error.value = "切换会话失败";
-    }
-  }
-
-  // === 初始化 ===
+  // === init (由 App.vue onMounted 调用) ===
 
   async function init() {
-    await fetchSessions();
-    await fetchSkills();
-    if (sessions.value.length > 0) {
-      await loadSession(sessions.value[0].id);
+    await session.fetchSessions();
+    await skill.fetchSkills();
+    if (session.sessions.value.length > 0) {
+      const msgs = await session.loadSession(session.sessions.value[0].id);
+      if (msgs) {
+        const messages: ChatMessage[] = msgs.map((m: any) => ({
+          ...m,
+          id: nextId(),
+        }));
+        timeline.value = toTimeline(messages);
+      }
     }
   }
 
-  async function fetchSkills() {
-    try {
-      const res = await fetch("/api/skills");
-      const data = await res.json();
-      skills.value = data.skills || [];
-    } catch { /* ignore */ }
-  }
-
-  async function toggleSkill(name: string) {
-    try {
-      const res = await fetch(`/api/skills/${name}`, { method: "PUT" });
-      const data = await res.json();
-      if (data.ok) {
-        skills.value = skills.value.map((s) =>
-          s.name === name ? { ...s, enabled: data.enabled } : s
-        );
-      }
-    } catch { /* ignore */ }
-  }
-
-  // === 发送消息 ===
+  // === send ===
 
   async function send(text: string): Promise<void> {
     if (isRunning.value) return;
     isRunning.value = true;
     error.value = null;
 
-    // 添加用户消息
     const userMsg: ChatMessage = {
       id: nextId(),
       role: "user",
@@ -141,19 +60,15 @@ export function useAgent() {
     };
     timeline.value = [...timeline.value, { id: userMsg.id, kind: "message", message: userMsg, tool: null }];
 
-    // 建立 SSE 连接
     eventSource = new EventSource("/api/events");
     currentAssistantId = null;
 
     eventSource.onmessage = (e) => {
-      try {
-        const event = JSON.parse(e.data);
-        handleEvent(event);
-      } catch { /* ignore */ }
+      try { handleEvent(JSON.parse(e.data)); } catch { /* ignore */ }
     };
 
     eventSource.onerror = () => {
-      cleanupEventSource();
+      cleanup();
       isRunning.value = false;
       if (currentAssistantId) {
         timeline.value = timeline.value.map((t) =>
@@ -165,7 +80,6 @@ export function useAgent() {
       error.value = "连接断开，请重试";
     };
 
-    // 等待 SSE 连接建立
     await new Promise((r) => setTimeout(r, 300));
 
     try {
@@ -177,22 +91,21 @@ export function useAgent() {
       const data = await res.json();
       if (!data.ok) {
         error.value = data.error || "请求失败";
-        cleanupEventSource();
+        cleanup();
         isRunning.value = false;
-      }
-      else if (data.stopReason === "error" && !currentAssistantId) {
-        error.value = "AI 请求失败，请检查 API Key 或网络";
-        cleanupEventSource();
+      } else if (data.data?.stopReason === "error" && !currentAssistantId) {
+        error.value = "AI 请求失败";
+        cleanup();
         isRunning.value = false;
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : "网络错误";
-      cleanupEventSource();
+      cleanup();
       isRunning.value = false;
     }
   }
 
-  function cleanupEventSource() {
+  function cleanup() {
     if (eventSource) {
       eventSource.onmessage = null;
       eventSource.close();
@@ -200,13 +113,36 @@ export function useAgent() {
     }
   }
 
-  function extractToolResult(result: any): string {
-    if (!result?.content) return "";
-    const texts = result.content
-      .filter((c: any) => c.type === "text")
-      .map((c: any) => c.text as string);
-    return texts.join("\n").slice(0, 500);
+  function abort() {
+    fetch("/api/abort", { method: "POST" }).catch(() => {});
+    cleanup();
+    if (currentAssistantId) {
+      timeline.value = timeline.value.map((t) =>
+        t.kind === "message" && t.message!.id === currentAssistantId
+          ? { ...t, message: { ...t.message!, isStreaming: false } }
+          : t
+      );
+    }
+    isRunning.value = false;
   }
+
+  function steer(editedText: string) {
+    if (timeline.value.length < 2) return;
+    let userIdx = -1;
+    for (let i = timeline.value.length - 1; i >= 0; i--) {
+      const item = timeline.value[i];
+      if (item.kind === "message" && item.message?.role === "user") { userIdx = i; break; }
+    }
+    if (userIdx < 0) return;
+    const userItem = timeline.value[userIdx];
+    if (userItem.kind === "message" && userItem.message) {
+      userItem.message.content = editedText;
+    }
+    timeline.value = timeline.value.slice(0, userIdx + 1);
+    send(editedText);
+  }
+
+  // === SSE event handler ===
 
   function handleEvent(event: any) {
     switch (event.type) {
@@ -219,14 +155,18 @@ export function useAgent() {
         const msg = event.message;
         if (msg.role === "assistant") {
           currentAssistantId = nextId();
-          const assistantMsg: ChatMessage = {
+          timeline.value = [...timeline.value, {
             id: currentAssistantId,
-            role: "assistant",
-            content: "",
-            timestamp: Date.now(),
-            isStreaming: true,
-          };
-          timeline.value = [...timeline.value, { id: currentAssistantId, kind: "message", message: assistantMsg, tool: null }];
+            kind: "message",
+            message: {
+              id: currentAssistantId,
+              role: "assistant",
+              content: "",
+              timestamp: Date.now(),
+              isStreaming: true,
+            },
+            tool: null,
+          }];
         }
         break;
       }
@@ -254,7 +194,7 @@ export function useAgent() {
 
       case "agent_end":
         isRunning.value = false;
-        cleanupEventSource();
+        cleanup();
         break;
 
       case "tool_execution_start":
@@ -274,79 +214,50 @@ export function useAgent() {
       case "tool_execution_end":
         timeline.value = timeline.value.map((t) =>
           t.kind === "tool" && t.tool!.id === event.toolCallId
-            ? {
-              ...t,
-              tool: {
-                ...t.tool!,
-                state: event.isError ? "error" : "done",
-                result: extractToolResult(event.result),
-              },
-            }
+            ? { ...t, tool: { ...t.tool!, state: event.isError ? "error" : "done", result: extractToolResult(event.result) } }
             : t,
         );
         break;
     }
   }
 
-  function abort(): void {
-    fetch("/api/abort", { method: "POST" }).catch(() => {});
-    cleanupEventSource();
+  // === session actions ===
 
-    if (currentAssistantId) {
-      timeline.value = timeline.value.map((t) =>
-        t.kind === "message" && t.message!.id === currentAssistantId
-          ? { ...t, message: { ...t.message!, isStreaming: false } }
-          : t
-      );
+  async function createSession() {
+    const id = await session.createSession();
+    if (id) {
+      const msgs = await session.loadSession(id);
+      if (msgs) timeline.value = toTimeline(msgs.map((m: any) => ({ ...m, id: nextId() })));
     }
-    isRunning.value = false;
   }
 
-  function clearError(): void {
-    error.value = null;
-  }
-
-  // === Steer: 编辑最后一条用户消息并重新生成 ===
-
-  function steer(editedText: string) {
-    if (timeline.value.length < 2) return;
-
-    // 找到最后一条用户消息
-    let userIdx = -1;
-    for (let i = timeline.value.length - 1; i >= 0; i--) {
-      const item = timeline.value[i];
-      if (item.kind === "message" && item.message?.role === "user") {
-        userIdx = i;
-        break;
-      }
+  async function deleteSession(id: string) {
+    const nextSid = await session.deleteSession(id);
+    if (nextSid) {
+      const msgs = await session.loadSession(nextSid);
+      if (msgs) timeline.value = toTimeline(msgs.map((m: any) => ({ ...m, id: nextId() })));
+    } else {
+      timeline.value = [];
     }
-    if (userIdx < 0) return;
-
-    // 更新用户消息文本
-    const userItem = timeline.value[userIdx];
-    if (userItem.kind === "message" && userItem.message) {
-      userItem.message.content = editedText;
-    }
-
-    // 移除用户消息之后的所有内容（AI 回复）
-    timeline.value = timeline.value.slice(0, userIdx + 1);
-
-    // 重新发送
-    send(editedText);
   }
 
-  // === FollowUp: 在末尾追加追问 ===
-
-  function followUp(text: string) {
-    send(text);
+  async function switchSession(id: string) {
+    const msgs = await session.switchSession(id);
+    if (msgs) timeline.value = toTimeline(msgs.map((m: any) => ({ ...m, id: nextId() })));
   }
+
+  function clearError() { error.value = null; }
 
   return {
-    timeline, sessions, currentSessionId, skills,
+    timeline,
+    sessions: session.sessions,
+    currentSessionId: session.currentSessionId,
+    skills: skill.skills,
     isRunning, error,
-    init, send, abort, clearError,
+    send, abort, clearError,
     createSession, deleteSession, switchSession,
-    steer, followUp, toggleSkill,
+    steer, followUp: send,
+    toggleSkill: skill.toggleSkill,
     _handleEvent: handleEvent,
   };
 }

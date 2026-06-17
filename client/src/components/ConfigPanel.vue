@@ -10,7 +10,7 @@ const saving = ref(false);
 onMounted(async () => {
   try {
     const res = await fetch("/api/config");
-    const cfg = await res.json();
+    const cfg = resData.data || resData;
     hasApiKey.value = cfg.hasApiKey;
     modelId.value = cfg.modelId;
     apiKey.value = cfg.hasApiKey ? "••••••••" : "";
@@ -35,8 +35,8 @@ async function saveConfig() {
     });
     const data = await res.json();
     if (data.ok) {
-      hasApiKey.value = data.config.hasApiKey;
-      apiKey.value = data.config.hasApiKey ? "••••••••" : "";
+      hasApiKey.value = resData.data.hasApiKey;
+      apiKey.value = resData.data.hasApiKey ? "••••••••" : "";
       showForm.value = false;
     }
   } catch { /* ignore */ }

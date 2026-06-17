@@ -17,7 +17,8 @@ async function fetchTokens() {
   try {
     const res = await fetch("/api/health");
     const data = await res.json();
-    tokenCount.value = data.tokens || 0;
+    const hd = data.data || data;
+    tokenCount.value = hd.tokens || 0;
   } catch { /* ignore */ }
 }
 

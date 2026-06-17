@@ -9,12 +9,10 @@ export function compactRoute() {
       const result = await getHarness().compact();
       return c.json({
         ok: true,
-        summary: result.summary,
-        tokensBefore: result.tokensBefore,
+        data: { summary: result.summary, tokensBefore: result.tokensBefore },
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "未知错误";
-      return c.json({ ok: false, error: message }, 500);
+      return c.json({ ok: false, error: (err as Error).message }, 500);
     }
   });
 

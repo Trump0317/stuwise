@@ -1,4 +1,12 @@
-/** 共享类型，前后端通用 */
+/** 共享类型 */
+
+export interface CreateHarnessOptions {
+  provider: string;
+  modelId: string;
+  apiKey: string;
+  sessionDir?: string;
+  systemPrompt?: string;
+}
 
 export interface SessionInfo {
   id: string;
@@ -26,3 +34,8 @@ export interface HealthInfo {
   tokens: number;
   compactNeeded: boolean;
 }
+
+/** API 统一响应 */
+export type ApiOk<T> = { ok: true; data: T };
+export type ApiErr = { ok: false; error: string };
+export type ApiResponse<T> = ApiOk<T> | ApiErr;
