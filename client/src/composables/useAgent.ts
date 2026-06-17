@@ -21,6 +21,7 @@ export function useAgent() {
   const timeline = ref<TimelineItem[]>([]);
   const isRunning = ref(false);
   const error = ref<string | null>(null);
+  const lastSentText = ref("");
 
   const session = useSession();
   const skill = useSkills();
@@ -51,6 +52,7 @@ export function useAgent() {
     if (isRunning.value) return;
     isRunning.value = true;
     error.value = null;
+    lastSentText.value = text;
 
     const userMsg: ChatMessage = {
       id: nextId(),
@@ -258,6 +260,7 @@ export function useAgent() {
     createSession, deleteSession, switchSession,
     steer, followUp: send,
     toggleSkill: skill.toggleSkill,
+    lastSentText,
     _handleEvent: handleEvent,
   };
 }

@@ -27,7 +27,13 @@ watch(
 
 <template>
   <div ref="listRef" class="chat-view">
-    <template v-for="item in timeline" :key="item.id">
+    <div v-if="timeline.length === 0" class="empty-state">
+      <div class="empty-icon">💬</div>
+      <h2>开始对话</h2>
+      <p>输入消息，AI 助手将帮助你处理学习任务。</p>
+      <p class="empty-hint">支持：搜索资料、创建笔记、管理文件、执行命令</p>
+    </div>
+    <template v-else v-for="item in timeline" :key="item.id">
       <div
         v-if="item.kind === 'message' && item.message"
         class="message"
@@ -61,6 +67,41 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  text-align: center;
+  padding: 40px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-state h2 {
+  font-size: 18px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.empty-state p {
+  font-size: 13px;
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+.empty-hint {
+  margin-top: 12px;
+  color: #d1d5db;
+  font-size: 12px !important;
 }
 
 .message {

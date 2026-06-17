@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import ChatView from "./components/ChatView.vue";
 import ChatInput from "./components/ChatInput.vue";
 import SkillList from "./components/SkillList.vue";
@@ -9,11 +9,13 @@ import { useAgent } from "./composables/useAgent";
 
 const {
   timeline, sessions, currentSessionId, skills,
-  isRunning, error,
+  isRunning, error, lastSentText,
   init, send, abort, clearError,
   createSession, deleteSession, switchSession,
   steer, toggleSkill,
 } = useAgent();
+
+const showSkills = ref(false);
 
 onMounted(() => { init(); });
 
@@ -28,13 +30,8 @@ function handleAbort() {
 
 <template>
   <div class="app-container">
-    <header class="app-header">
-      <h1>Stuwise</h1>
-      <span class="subtitle">学生助理</span>
-      <div style="flex:1"></div>
-      <ConfigPanel />
-    </header>
-    <SkillList :skills="skills" @toggle="toggleSkill" />
+    <!-- Header 暂时屏蔽 -->
+    <!-- SkillList 暂时屏蔽 -->
     <div class="app-body">
       <SessionList
         :sessions="sessions"
@@ -42,11 +39,17 @@ function handleAbort() {
         @select="switchSession"
         @create="createSession"
         @delete="deleteSession"
+        @show-skills="showSkills = !showSkills"
+        @show-tools="() => {}"
       />
       <div class="app-chat">
+        <SkillList v-if="showSkills" :skills="skills" @toggle="toggleSkill" />
         <div v-if="error" class="error-banner">
           <span>{{ error }}</span>
-          <button class="error-close" @click="clearError">×</button>
+          <div class="error-actions">
+            <button class="error-retry" @click="send(lastSentText)" v-if="lastSentText">重试</button>
+            <button class="error-close" @click="clearError">×</button>
+          </div>
         </div>
         <main class="app-main">
           <ChatView
@@ -84,10 +87,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 1000px;
-  margin: 0 auto;
   background: #fff;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
 }
 
 .app-header {
@@ -149,5 +149,21 @@ body {
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
+}
+
+.error-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.error-retry {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
 }
 </style>
