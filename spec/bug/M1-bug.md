@@ -30,13 +30,9 @@
 
 ## B3: Session 膨胀导致 agent_end error
 
-**状态**: 临时修复（手动清空 sessions）
+**状态**: 已修复
 
-**现象**: 多次对话后 session JSONL 过大，超出模型 context window (1.4M tokens)，导致 `stopReason: "error"`。
-
-**临时方案**: 每次重启前 `rm -rf data/sessions/*`
-
-**长期方案**: M2+ 实现 context compaction
+**修复**: 新增 `POST /api/compact` 端点 + prompt 前自动 compact。JSONL 条目超过 80 时自动触发 `harness.compact()`。
 
 ---
 

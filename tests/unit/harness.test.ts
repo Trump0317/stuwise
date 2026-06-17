@@ -21,10 +21,11 @@ const mockSessionMetadata = {
 };
 
 function createMockRepo(options: { existingSessions?: typeof mockSessionMetadata[] } = {}) {
+  const meta = options.existingSessions?.[0] ?? mockSessionMetadata;
   return {
     list: vi.fn().mockResolvedValue(options.existingSessions ?? []),
-    create: vi.fn().mockResolvedValue({}),
-    open: vi.fn().mockResolvedValue({}),
+    create: vi.fn().mockResolvedValue({ getMetadata: vi.fn().mockResolvedValue(meta) }),
+    open: vi.fn().mockResolvedValue({ getMetadata: vi.fn().mockResolvedValue(meta) }),
   };
 }
 
