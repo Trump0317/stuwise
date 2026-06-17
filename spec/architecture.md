@@ -201,6 +201,8 @@ stuwise/
 | GET | `/api/session/:id` | 获取 Session 对话历史 | 同上 |
 | DELETE | `/api/session/:id` | 删除 Session + JSONL | 同上 |
 | PUT | `/api/session/:id` | 切换当前 Session | 同上 |
+| PUT | `/api/session/:id/name` | 重命名 Session | 同上 |
+| PUT | `/api/session/:id/pin` | 置顶/取消置顶 Session | 同上 |
 | POST | `/api/compact` | 压缩 Session context | `server/routes/compact.ts` |
 
 ### Skill
@@ -209,6 +211,12 @@ stuwise/
 |------|------|------|------|
 | GET | `/api/skills` | 获取 Skill 列表（含启用状态） | `server/routes/skills.ts` |
 | PUT | `/api/skills/:name` | 切换 Skill 启用/禁用 | 同上 |
+
+### 产物
+
+| 方法 | 路径 | 说明 | 文件 |
+|------|------|------|------|
+| GET | `/api/outputs?type=all\|image\|file\|link` | 产物列表 | `server/routes/outputs.ts` |
 
 ### 配置
 
