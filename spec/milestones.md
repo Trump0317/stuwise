@@ -6,11 +6,10 @@
 |--------|------|--------|------|
 | [M0](milestones/M0-skeleton.md) | 工程骨架 + 最小可用原型 | 6 | [x] |
 | [M1](milestones/M1-tools.md) | 工具系统（通用工具接入） | 12 | [x] |
-| [M2](milestones/M2-skills.md) | Skill 系统（场景指令注入） | 3 | [ ] |
+| [M2](milestones/M2-skills.md) | Skill 系统（场景指令注入） | 3 | [x] |
 
 ## 进度统计
 
-| 状态 | 数量 |
 | 状态 | 数量 |
 |------|------|
 | 已完成 `[x]` | 15 |
