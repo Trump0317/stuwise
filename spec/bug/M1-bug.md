@@ -22,18 +22,9 @@
 
 ## B2: web_search 返回错误
 
-**状态**: 未修复
+**状态**: 已修复
 
-**现象**: SSE 事件 `tool_execution_end` 中 `isError: true`，DuckDuckGo Lite 返回 403 或 HTML 解析失败。
-
-```
-[tool] end web_search error: true
-```
-
-**可能原因**: 
-- DuckDuckGo Lite 可能需要特定 User-Agent 头
-- 网络环境限制（需翻墙）
-- HTML 解析正则不匹配实际页面结构
+**修复**: 切换为 Bing 引擎（DDG 被墙），添加 User-Agent 头，更新 HTML 解析逻辑。
 
 ---
 

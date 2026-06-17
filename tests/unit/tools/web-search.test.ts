@@ -20,10 +20,10 @@ describe("createWebSearchTool", () => {
 
   it("应返回搜索结果", async () => {
     const mockHtml = `
-      <html>
-        <a class="result-link" href="https://example.com">Example Title</a>
-        <span class="result-snippet">This is a snippet</span>
-      </html>`;
+      <li class="b_algo">
+        <h2><a href="https://example.com">Example Title</a></h2>
+        <div class="b_caption"><p class="b_lineclamp2">This is a snippet</p></div>
+      </li>`;
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
       text: () => Promise.resolve(mockHtml),
@@ -35,6 +35,30 @@ describe("createWebSearchTool", () => {
     const text = (result.content[0] as { type: string; text: string }).text;
     expect(text).toContain("Example Title");
     expect(text).toContain("https://example.com");
+    expect(text).toContain("This is a snippet");
+  });
+
+  it("应解析多个搜索结果", async () => {
+    const mockHtml = `
+      <li class="b_algo">
+        <h2><a href="https://a.com">Title A</a></h2>
+        <div class="b_caption"><p class="b_lineclamp2">Snippet A</p></div>
+      </li>
+      <li class="b_algo">
+        <h2><a href="https://b.com">Title B</a></h2>
+        <div class="b_caption"><p class="b_lineclamp2">Snippet B</p></div>
+      </li>`;
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(mockHtml),
+    } as Response);
+
+    const tool = createWebSearchTool();
+    const result = await tool.execute("call-1", { query: "test" });
+
+    const text = (result.content[0] as { type: string; text: string }).text;
+    expect(text).toContain("Title A");
+    expect(text).toContain("Title B");
   });
 
   it("网络错误时应抛出错误", async () => {
@@ -47,9 +71,7 @@ describe("createWebSearchTool", () => {
   });
 
   it("max_results 应限制返回数量", async () => {
-    // 快速测试：验证参数限制逻辑
     const tool = createWebSearchTool();
-    // max_results 默认 5，最大 10
     const params = tool.parameters as any;
     expect(params).toBeDefined();
   });
@@ -64,6 +86,6 @@ describe("createWebSearchTool", () => {
     const tool = createWebSearchTool();
     await expect(
       tool.execute("call-1", { query: "test" }),
-    ).rejects.toThrow();
+    ).rejects.toThrow("搜索请求失败");
   });
 });

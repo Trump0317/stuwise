@@ -1,7 +1,7 @@
 import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import { Type, type Static } from "typebox";
 
-const DDG_LITE = "https://lite.duckduckgo.com/lite/";
+const BING_SEARCH = "https://www.bing.com/search";
 const DEFAULT_MAX = 5;
 const ABSOLUTE_MAX = 10;
 
@@ -12,23 +12,42 @@ interface SearchResult {
 }
 
 /**
- * 解析 DuckDuckGo Lite HTML，提取搜索结果。
+ * 解析 Bing 搜索结果 HTML。
+ *
+ * Bing 结果结构：
+ *   <li class="b_algo">
+ *     <h2><a href="URL">TITLE</a></h2>
+ *     <div class="b_caption"><p class="b_lineclamp2">SNIPPET</p></div>
+ *   </li>
  */
 function parseResults(html: string): SearchResult[] {
   const results: SearchResult[] = [];
 
-  // 匹配每个结果块：<a class="result-link"> title </a> ... <span class="result-snippet"> snippet </span>
-  const blockRegex = /<a[^>]*class="result-link"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<span[^>]*class="result-snippet"[^>]*>([\s\S]*?)<\/span>/gi;
+  // 提取每个结果块 <li class="b_algo" ...> ... </li>
+  const blockRegex = /<li\s+class="b_algo"[^>]*>([\s\S]*?)<\/li>/gi;
+  let blockMatch: RegExpExecArray | null;
 
-  let match;
-  while ((match = blockRegex.exec(html)) !== null) {
-    const url = decodeURIComponent(match[1].replace(/^\/\/duckduckgo\.com\/l\/\?uddg=/, ""));
-    const title = match[2].replace(/<[^>]*>/g, "").trim();
-    const snippet = match[3].replace(/<[^>]*>/g, "").trim();
+  while ((blockMatch = blockRegex.exec(html)) !== null) {
+    const block = blockMatch[1];
 
-    if (url && title) {
-      results.push({ title, url, snippet });
-    }
+    // 提取链接和标题: <h2>?<a ... href="URL" ...>TITLE</a>
+    const linkRegex = /<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i;
+    const linkMatch = block.match(linkRegex);
+    if (!linkMatch) continue;
+
+    const url = linkMatch[1].replace(/&amp;/g, "&");
+    const title = linkMatch[2].replace(/<[^>]*>/g, "").trim();
+
+    if (!url || !title) continue;
+
+    // 提取摘要: <p class="b_lineclamp2">SNIPPET</p>
+    const snippetRegex = /<p\s+class="b_lineclamp\d"[^>]*>([\s\S]*?)<\/p>/i;
+    const snippetMatch = block.match(snippetRegex);
+    const snippet = snippetMatch
+      ? snippetMatch[1].replace(/<[^>]*>/g, "").trim()
+      : "";
+
+    results.push({ title, url, snippet });
   }
 
   return results;
@@ -47,7 +66,7 @@ export function createWebSearchTool(): AgentTool {
   return {
     name: "web_search",
     label: "搜索网络",
-    description: "通过 DuckDuckGo 搜索网络内容，返回标题、URL 和摘要。无需 API Key。",
+    description: "通过 Bing 搜索网络内容，返回标题、URL 和摘要。无需 API Key。",
     parameters: WebSearchParams,
 
     async execute(
@@ -58,8 +77,13 @@ export function createWebSearchTool(): AgentTool {
       const { query, max_results } = params as Params;
       const maxResults = Math.min(max_results ?? DEFAULT_MAX, ABSOLUTE_MAX);
 
-      const url = `${DDG_LITE}?q=${encodeURIComponent(query)}`;
-      const resp = await fetch(url);
+      const url = `${BING_SEARCH}?q=${encodeURIComponent(query)}`;
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; Stuwise/1.0)",
+          "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        },
+      });
 
       if (!resp.ok) {
         throw new Error(`搜索请求失败: HTTP ${resp.status}`);
