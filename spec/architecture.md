@@ -31,7 +31,9 @@
 │  │  ├── ChatView.vue    消息列表       │  │
 │  │  ├── ChatInput.vue   输入框         │  │
 │  │  ├── ToolCall.vue    工具调用展示   │  │
-│  │  └── Sidebar.vue     侧边栏        │  │
+│  │  ├── SessionList.vue 会话列表       │  │
+│  │  ├── SkillList.vue   Skill 开关     │  │
+│  │  └── ConfigPanel.vue 配置面板       │  │
 │  └──────────────┬─────────────────────┘  │
 │                 │ fetch + SSE             │
 └─────────────────┼────────────────────────┘
@@ -108,16 +110,26 @@ stuwise/
 │   └── milestones/
 ├── server/                   ← Hono 后端
 │   ├── index.ts              ← 入口：创建 app + harness + 注册路由
-│   ├── harness.ts            ← AgentHarness 工厂函数
+│   ├── harness.ts            ← 入口（56 行），re-export 子模块
+│   ├── types.ts              ← 共享类型（SessionInfo/RuntimeConfig/...）
+│   ├── harness/              ← harness 子模块（按功能拆分）
+│   │   ├── state.ts          ← 内部共享状态（$）
+│   │   ├── build.ts          ← buildHarness
+│   │   ├── session.ts        ← session CRUD
+│   │   ├── skill.ts          ← skill 开关
+│   │   ├── config.ts         ← 配置管理
+│   │   └── compact.ts        ← 压缩检查
 │   ├── routes/
 │   │   ├── prompt.ts
 │   │   ├── events.ts
 │   │   ├── steer.ts
-│   │   ├── abort.ts             ← 中止
-│   │   ├── skills.ts            ← Skill 列表
-│   │   ├── session.ts           ← Session CRUD
-│   │   └── compact.ts           ← Context 压缩
-│   └── config.ts             ← 启动配置
+│   │   ├── abort.ts
+│   │   ├── skills.ts
+│   │   ├── session.ts
+│   │   ├── config.ts
+│   │   ├── health.ts
+│   │   └── compact.ts
+│   └── config.ts             ← 启动配置（env 读取）
 ├── client/                   ← Vue 3 前端
 │   ├── index.html
 │   ├── vite.config.ts
@@ -129,9 +141,13 @@ stuwise/
 │       │   ├── ChatInput.vue
 │       │   ├── ToolCall.vue
 │       │   ├── SkillList.vue
-│       │   └── SessionList.vue
+│       │   ├── SessionList.vue
+│       │   └── ConfigPanel.vue
 │       ├── composables/
-│       │   └── useAgent.ts
+│       │   ├── useAgent.ts      ← 组合入口
+│       │   ├── useSession.ts    ← session 管理
+│       │   ├── useSkills.ts     ← skill 操作
+│       │   └── constants.ts     ← 常量提取
 │       └── types.ts
 ├── tools/                    ← 通用 AgentTool（9 个）
 │   ├── index.ts              ← 注册所有工具
@@ -302,29 +318,31 @@ export function createAllTools(env: ExecutionEnv): AgentTool[] {
 
 所有工具都是通用的，不绑定任何业务场景。
 
-### client/src/composables/useAgent.ts — 前端状态管理
+### client/src/composables/ — 前端状态管理（4 个 composable）
 
 ```typescript
-export function useAgent() {
+// useSession.ts — session CRUD + 状态
+{ sessions, currentSessionId, fetchSessions, loadSession, create, delete, switch }
+
+// useSkills.ts — skill 开关
+{ skills, fetchSkills, toggleSkill }
+
+// useAgent.ts — 组合入口
+function useAgent() {
+  const session = useSession();
+  const skill = useSkills();
   const timeline = ref<TimelineItem[]>([]);
-  const skills = ref<Skill[]>([]);
-  const sessionId = ref<string | null>(null);
   const isRunning = ref(false);
-  const error = ref<string | null>(null);
 
-  // 从后端加载会话历史（v1.0 移除 localStorage）
-  async function loadSession(id: string) {
-    sessionId.value = id;
-    const res = await fetch(`/api/session/${id}`);
-    const data = await res.json();
-    timeline.value = toTimeline(data.messages);
-  }
+  function init()           { session.fetchSessions(); skill.fetchSkills(); ... }
+  function send(text)       { ... }        // SSE + /api/prompt
+  function handleEvent(e)   { ... }        // SSE 事件处理
+  function steer(text)      { ... }        // 编辑重生成
+  function abort()          { ... }        // 中断
 
-  async function send(text: string): Promise<void> { ... }
-  function abort(): void { ... }
-
-  return { timeline, skills, sessionId, isRunning, error,
-           send, abort, loadSession };
+  return { timeline, sessions, currentSessionId, skills,
+           isRunning, error, send, abort, init,
+           createSession, deleteSession, switchSession, steer, toggleSkill };
 }
 ```
 
