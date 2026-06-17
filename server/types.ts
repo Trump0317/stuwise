@@ -13,6 +13,8 @@ export interface SessionInfo {
   createdAt: string;
   cwd: string;
   messageCount: number;
+  name?: string;
+  pinned?: boolean;
 }
 
 export interface RuntimeConfig {

@@ -13,6 +13,7 @@ import { sessionRoute } from "./routes/session";
 import { steerRoute } from "./routes/steer";
 import { configRoute } from "./routes/config";
 import { healthRoute } from "./routes/health";
+import { outputsRoute } from "./routes/outputs";
 
 await createHarness({
   provider: config.model.provider,
@@ -31,6 +32,7 @@ app.route("/api", sessionRoute());
 app.route("/api", steerRoute());
 app.route("/api", configRoute());
 app.route("/api", healthRoute());
+app.route("/api", outputsRoute());
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`Stuwise server: http://localhost:${info.port}`);

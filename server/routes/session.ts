@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { listSessions, createSession, deleteSession, switchSession, getSessionMessages } from "../harness";
+import { listSessions, createSession, deleteSession, switchSession, getSessionMessages, renameSession, pinSession } from "../harness";
 
 export function sessionRoute() {
   const app = new Hono();
@@ -39,6 +39,30 @@ export function sessionRoute() {
     try {
       const info = await switchSession(id);
       return c.json({ ok: true, data: { session: info } });
+    } catch (err) {
+      return c.json({ ok: false, error: (err as Error).message }, 404);
+    }
+  });
+
+  // 重命名
+  app.put("/session/:id/name", async (c) => {
+    const id = c.req.param("id");
+    try {
+      const body = await c.req.json();
+      await renameSession(id, body.name || "");
+      return c.json({ ok: true, data: {} });
+    } catch (err) {
+      return c.json({ ok: false, error: (err as Error).message }, 404);
+    }
+  });
+
+  // 置顶
+  app.put("/session/:id/pin", async (c) => {
+    const id = c.req.param("id");
+    try {
+      const body = await c.req.json();
+      await pinSession(id, body.pinned ?? true);
+      return c.json({ ok: true, data: {} });
     } catch (err) {
       return c.json({ ok: false, error: (err as Error).message }, 404);
     }
