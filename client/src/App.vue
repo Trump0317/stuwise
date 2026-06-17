@@ -11,7 +11,7 @@ const {
   isRunning, error,
   init, send, abort, clearError,
   createSession, deleteSession, switchSession,
-  steer,
+  steer, toggleSkill,
 } = useAgent();
 
 onMounted(() => {
@@ -33,7 +33,7 @@ function handleAbort() {
       <h1>Stuwise</h1>
       <span class="subtitle">学生助理</span>
     </header>
-    <SkillList :skills="skills" />
+    <SkillList :skills="skills" @toggle="toggleSkill" />
     <div class="app-body">
       <SessionList
         :sessions="sessions"

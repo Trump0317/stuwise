@@ -1,15 +1,26 @@
 <script setup lang="ts">
 defineProps<{
-  skills: Array<{ name: string; description: string }>;
+  skills: Array<{ name: string; description: string; enabled: boolean }>;
+}>();
+
+const emit = defineEmits<{
+  toggle: [name: string];
 }>();
 </script>
 
 <template>
   <div v-if="skills.length > 0" class="skill-list">
     <span class="skill-label">Skills:</span>
-    <span class="skill-badge" v-for="s in skills" :key="s.name" :title="s.description">
+    <button
+      v-for="s in skills"
+      :key="s.name"
+      class="skill-badge"
+      :class="{ off: !s.enabled }"
+      :title="s.description"
+      @click="emit('toggle', s.name)"
+    >
       {{ s.name }}
-    </span>
+    </button>
   </div>
 </template>
 
@@ -37,7 +48,17 @@ defineProps<{
   color: #6366f1;
   background: #eef2ff;
   border-radius: 10px;
+  border: 1px solid transparent;
   white-space: nowrap;
-  cursor: default;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.skill-badge:hover {
+  border-color: #6366f1;
+}
+.skill-badge.off {
+  color: #9ca3af;
+  background: #f0f0f0;
+  text-decoration: line-through;
 }
 </style>

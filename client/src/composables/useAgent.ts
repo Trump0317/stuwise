@@ -22,7 +22,7 @@ export function useAgent() {
   const timeline = ref<TimelineItem[]>([]);
   const sessions = ref<SessionInfo[]>([]);
   const currentSessionId = ref<string | null>(null);
-  const skills = ref<Array<{ name: string; description: string }>>([]);
+  const skills = ref<Array<{ name: string; description: string; enabled: boolean }>>([]);
   const isRunning = ref(false);
   const error = ref<string | null>(null);
 
@@ -110,6 +110,18 @@ export function useAgent() {
       const res = await fetch("/api/skills");
       const data = await res.json();
       skills.value = data.skills || [];
+    } catch { /* ignore */ }
+  }
+
+  async function toggleSkill(name: string) {
+    try {
+      const res = await fetch(`/api/skills/${name}`, { method: "PUT" });
+      const data = await res.json();
+      if (data.ok) {
+        skills.value = skills.value.map((s) =>
+          s.name === name ? { ...s, enabled: data.enabled } : s
+        );
+      }
     } catch { /* ignore */ }
   }
 
@@ -334,7 +346,7 @@ export function useAgent() {
     isRunning, error,
     init, send, abort, clearError,
     createSession, deleteSession, switchSession,
-    steer, followUp,
+    steer, followUp, toggleSkill,
     _handleEvent: handleEvent,
   };
 }

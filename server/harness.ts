@@ -35,6 +35,12 @@ let harnessRef: { current: AgentHarness } | null = null;
 /** 当前会话路径（用于 compact 检查） */
 let currentSessionPath: string | null = null;
 
+/** Skill 启用状态映射 */
+const skillEnabled = new Map<string, boolean>();
+
+/** 所有已加载的 Skill */
+let _allSkills: Array<{ name: string; description: string; content: string; filePath: string }> = [];
+
 function getRepo(env: NodeExecutionEnv, sessionDir: string): JsonlSessionRepo {
   return new JsonlSessionRepo({ fs: env, sessionsRoot: sessionDir });
 }
@@ -85,8 +91,17 @@ async function buildHarness(session: Session<JsonlSessionMetadata>): Promise<Age
   const { skills, diagnostics } = await loadSkills(_env, "./skills");
   for (const d of diagnostics) console.warn(`[Skill] ${d.message}`);
 
+  // 存储所有 skill，初始化启用状态
+  _allSkills = skills.map((s) => ({ name: s.name, description: s.description, content: s.content, filePath: s.filePath }));
+  for (const s of _allSkills) {
+    if (!skillEnabled.has(s.name)) skillEnabled.set(s.name, true);
+  }
+
+  // 过滤启用的 skill
+  const enabledSkills = skills.filter((s) => skillEnabled.get(s.name) !== false);
+
   const basePrompt = _options.systemPrompt || DEFAULT_SYSTEM_PROMPT;
-  const skillBlock = formatSkillsForSystemPrompt(skills);
+  const skillBlock = formatSkillsForSystemPrompt(enabledSkills);
   const systemPrompt = [basePrompt, skillBlock].filter(Boolean).join("\n\n");
 
   return new AgentHarness({
@@ -95,7 +110,7 @@ async function buildHarness(session: Session<JsonlSessionMetadata>): Promise<Age
     model,
     tools: createAllTools(_env),
     systemPrompt,
-    resources: { skills },
+    resources: { skills: enabledSkills },
     getApiKeyAndHeaders: async () => ({ apiKey: _options.apiKey }),
   });
 }
@@ -192,6 +207,41 @@ export async function switchSession(id: string): Promise<SessionInfo> {
     cwd: (meta as JsonlSessionMetadata).cwd,
     messageCount: entries.filter((e) => e.type === "message").length,
   };
+}
+
+// === Skill 管理 ===
+
+/** 获取所有 Skill（含启用状态） */
+export function getSkillsWithStatus(): Array<{ name: string; description: string; enabled: boolean }> {
+  return _allSkills.map((s) => ({
+    name: s.name,
+    description: s.description,
+    enabled: skillEnabled.get(s.name) !== false,
+  }));
+}
+
+/** 切换 Skill 启用状态 */
+export async function toggleSkill(name: string): Promise<boolean> {
+  const current = skillEnabled.get(name) !== false;
+  skillEnabled.set(name, !current);
+
+  // 更新 harness resources
+  const harness = getHarness();
+  const resources = harness.getResources();
+  const skills = resources.skills || [];
+  if (current) {
+    // 禁用：移除该 skill
+    const filtered = skills.filter((s) => s.name !== name);
+    harness.setResources({ ...resources, skills: filtered });
+  } else {
+    // 启用：添加该 skill
+    const skill = _allSkills.find((s) => s.name === name);
+    if (skill) {
+      harness.setResources({ ...resources, skills: [...skills, skill] });
+    }
+  }
+
+  return !current;
 }
 
 /** 获取 session 对话历史 */
