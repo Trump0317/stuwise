@@ -40,11 +40,7 @@
 │           Hono Server (端口 3000)         │
 │  ┌────────────────────────────────────┐  │
 │  │         server/index.ts            │  │
-│  │  GET  /            → 静态文件      │  │
-│  │  GET  /api/events  → SSE 事件流    │  │
-│  │  POST /api/prompt  → harness.prompt│  │
-│  │  POST /api/steer   → harness.steer │  │
-│  │  POST /api/abort   → harness.abort │  │
+│  │  API 端点 → 见下方《API 端点清单》   │  │
 │  └──────────────┬─────────────────────┘  │
 └─────────────────┼────────────────────────┘
                   │
@@ -117,7 +113,10 @@ stuwise/
 │   │   ├── prompt.ts
 │   │   ├── events.ts
 │   │   ├── steer.ts
-│   │   └── abort.ts
+│   │   ├── abort.ts             ← 中止
+│   │   ├── skills.ts            ← Skill 列表
+│   │   ├── session.ts           ← Session CRUD
+│   │   └── compact.ts           ← Context 压缩
 │   └── config.ts             ← 启动配置
 ├── client/                   ← Vue 3 前端
 │   ├── index.html
@@ -128,7 +127,9 @@ stuwise/
 │       ├── components/
 │       │   ├── ChatView.vue
 │       │   ├── ChatInput.vue
-│       │   └── ToolCall.vue          ← M0 后引入
+│       │   ├── ToolCall.vue
+│       │   ├── SkillList.vue
+│       │   └── SessionList.vue
 │       ├── composables/
 │       │   └── useAgent.ts
 │       └── types.ts
@@ -163,6 +164,49 @@ stuwise/
 └── AGENTS.md
 ```
 
+## API 端点清单
+
+### 对话
+
+| 方法 | 路径 | 说明 | 文件 |
+|------|------|------|------|
+| GET | `/api/events` | SSE 事件流（agent 实时推送） | `server/routes/events.ts` |
+| POST | `/api/prompt` | 发送消息 | `server/routes/prompt.ts` |
+| POST | `/api/abort` | 中断当前运行 | `server/routes/abort.ts` |
+| POST | `/api/steer` | 编辑最后一条消息重新生成 | `server/routes/steer.ts` |
+| POST | `/api/followup` | 在最后追加追问 | 同上 |
+
+### Session
+
+| 方法 | 路径 | 说明 | 文件 |
+|------|------|------|------|
+| GET | `/api/session` | 列出所有 Session | `server/routes/session.ts` |
+| POST | `/api/session` | 新建 Session | 同上 |
+| GET | `/api/session/:id` | 获取 Session 对话历史 | 同上 |
+| DELETE | `/api/session/:id` | 删除 Session + JSONL | 同上 |
+| PUT | `/api/session/:id` | 切换当前 Session | 同上 |
+| POST | `/api/compact` | 压缩 Session context | `server/routes/compact.ts` |
+
+### Skill
+
+| 方法 | 路径 | 说明 | 文件 |
+|------|------|------|------|
+| GET | `/api/skills` | 获取 Skill 列表（含启用状态） | `server/routes/skills.ts` |
+| PUT | `/api/skills/:name` | 切换 Skill 启用/禁用 | 同上 |
+
+### 配置
+
+| 方法 | 路径 | 说明 | 文件 |
+|------|------|------|------|
+| GET | `/api/config` | 获取当前配置（provider, modelId, hasApiKey） | `server/routes/config.ts` |
+| PUT | `/api/config` | 更新配置（apiKey, provider, modelId） | 同上 |
+
+### 系统
+
+| 方法 | 路径 | 说明 | 文件 |
+|------|------|------|------|
+| GET | `/api/health` | 健康检查 + Token 用量 | `server/routes/health.ts` |
+
 ## 核心模块接口
 
 ### server/harness.ts — AgentHarness 工厂
@@ -178,23 +222,25 @@ export async function createHarness(options: {
   modelId: string;
   apiKey: string;
   sessionDir: string;
-  skillsDir: string;
   systemPrompt?: string;
+  sessionId?: string;
 }) {
   const model = getModel(options.provider, options.modelId);
   const env = new NodeExecutionEnv({ cwd: process.cwd() });
 
-  // Session 生命周期：首次创建，后续打开
+  // Session 生命周期：指定 → 已有 → 新建
   const repo = new JsonlSessionRepo({ fs: env, sessionsRoot: options.sessionDir });
   const sessions = await repo.list();
   let session: Session;
-  if (sessions.length > 0) {
+  if (options.sessionId) {
+    session = await repo.openById(options.sessionId);
+  } else if (sessions.length > 0) {
     session = await repo.open(sessions[0]);
   } else {
     session = await repo.create({ cwd: options.sessionDir });
   }
 
-  // 从 skills/ 目录加载 Skill（M1 实现，M0 时 skills/ 为空）
+  // 从 skills/ 目录加载 Skill
   const { skills } = await loadSkills(env, options.skillsDir);
 
   const tools = createAllTools(env);  // M1 实现，M0 时 tools: []
@@ -260,16 +306,25 @@ export function createAllTools(env: ExecutionEnv): AgentTool[] {
 
 ```typescript
 export function useAgent() {
-  const messages = ref<ChatMessage[]>([]);
+  const timeline = ref<TimelineItem[]>([]);
+  const skills = ref<Skill[]>([]);
+  const sessionId = ref<string | null>(null);
   const isRunning = ref(false);
   const error = ref<string | null>(null);
-  // M0 后扩展：toolCalls: Map<string, ToolCallStatus>
+
+  // 从后端加载会话历史（v1.0 移除 localStorage）
+  async function loadSession(id: string) {
+    sessionId.value = id;
+    const res = await fetch(`/api/session/${id}`);
+    const data = await res.json();
+    timeline.value = toTimeline(data.messages);
+  }
 
   async function send(text: string): Promise<void> { ... }
   function abort(): void { ... }
-  function clearError(): void { ... }
 
-  return { messages, isRunning, error, send, abort, clearError };
+  return { timeline, skills, sessionId, isRunning, error,
+           send, abort, loadSession };
 }
 ```
 
