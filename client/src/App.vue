@@ -4,6 +4,7 @@ import ChatView from "./components/ChatView.vue";
 import ChatInput from "./components/ChatInput.vue";
 import SkillList from "./components/SkillList.vue";
 import SessionList from "./components/SessionList.vue";
+import ConfigPanel from "./components/ConfigPanel.vue";
 import { useAgent } from "./composables/useAgent";
 
 const {
@@ -32,6 +33,8 @@ function handleAbort() {
     <header class="app-header">
       <h1>Stuwise</h1>
       <span class="subtitle">学生助理</span>
+      <div style="flex:1"></div>
+      <ConfigPanel />
     </header>
     <SkillList :skills="skills" @toggle="toggleSkill" />
     <div class="app-body">

@@ -11,6 +11,7 @@ import { compactRoute } from "./routes/compact";
 import { skillsRoute } from "./routes/skills";
 import { sessionRoute } from "./routes/session";
 import { steerRoute } from "./routes/steer";
+import { configRoute } from "./routes/config";
 
 await createHarness({
   provider: config.model.provider,
@@ -27,6 +28,7 @@ app.route("/api", compactRoute());
 app.route("/api", skillsRoute());
 app.route("/api", sessionRoute());
 app.route("/api", steerRoute());
+app.route("/api", configRoute());
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`Stuwise server: http://localhost:${info.port}`);

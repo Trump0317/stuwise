@@ -41,6 +41,10 @@ const skillEnabled = new Map<string, boolean>();
 /** 所有已加载的 Skill */
 let _allSkills: Array<{ name: string; description: string; content: string; filePath: string }> = [];
 
+/** 运行时可变配置 */
+let _apiKey: string = "";
+let _modelConfig = { provider: "", modelId: "" };
+
 function getRepo(env: NodeExecutionEnv, sessionDir: string): JsonlSessionRepo {
   return new JsonlSessionRepo({ fs: env, sessionsRoot: sessionDir });
 }
@@ -86,7 +90,7 @@ let _repo: JsonlSessionRepo;
 let _sessionDir: string;
 
 async function buildHarness(session: Session<JsonlSessionMetadata>): Promise<AgentHarness> {
-  const model = (getModel as any)(_options.provider, _options.modelId) as Model<any>;
+  const model = (getModel as any)(_modelConfig.provider, _modelConfig.modelId) as Model<any>;
 
   const { skills, diagnostics } = await loadSkills(_env, "./skills");
   for (const d of diagnostics) console.warn(`[Skill] ${d.message}`);
@@ -111,7 +115,7 @@ async function buildHarness(session: Session<JsonlSessionMetadata>): Promise<Age
     tools: createAllTools(_env),
     systemPrompt,
     resources: { skills: enabledSkills },
-    getApiKeyAndHeaders: async () => ({ apiKey: _options.apiKey }),
+    getApiKeyAndHeaders: async () => ({ apiKey: _apiKey }),
   });
 }
 
@@ -120,6 +124,8 @@ async function buildHarness(session: Session<JsonlSessionMetadata>): Promise<Age
 /** 初始化（启动时调用一次） */
 export async function createHarness(options: CreateHarnessOptions): Promise<AgentHarness> {
   _options = options;
+  _apiKey = options.apiKey;
+  _modelConfig = { provider: options.provider, modelId: options.modelId };
   _env = new NodeExecutionEnv({ cwd: process.cwd() });
   _sessionDir = options.sessionDir || DEFAULT_SESSION_DIR;
   _repo = getRepo(_env, _sessionDir);
@@ -242,6 +248,49 @@ export async function toggleSkill(name: string): Promise<boolean> {
   }
 
   return !current;
+}
+
+// === 配置管理 ===
+
+export interface RuntimeConfig {
+  provider: string;
+  modelId: string;
+  hasApiKey: boolean;
+}
+
+export function getConfig(): RuntimeConfig {
+  return {
+    provider: _modelConfig.provider,
+    modelId: _modelConfig.modelId,
+    hasApiKey: !!_apiKey,
+  };
+}
+
+export async function updateConfig(config: {
+  apiKey?: string;
+  provider?: string;
+  modelId?: string;
+}): Promise<RuntimeConfig> {
+  let modelChanged = false;
+
+  if (config.apiKey !== undefined) {
+    _apiKey = config.apiKey;
+  }
+  if (config.provider !== undefined) {
+    _modelConfig.provider = config.provider;
+    modelChanged = true;
+  }
+  if (config.modelId !== undefined) {
+    _modelConfig.modelId = config.modelId;
+    modelChanged = true;
+  }
+
+  if (modelChanged && harnessRef?.current) {
+    const model = (getModel as any)(_modelConfig.provider, _modelConfig.modelId) as Model<any>;
+    await harnessRef.current.setModel(model);
+  }
+
+  return getConfig();
 }
 
 /** 获取 session 对话历史 */
