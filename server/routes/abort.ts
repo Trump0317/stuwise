@@ -1,11 +1,12 @@
 import { Hono } from "hono";
+import { getHarness } from "../harness";
 
-export function abortRoute(harness: { abort: () => Promise<unknown> }) {
+export function abortRoute() {
   const app = new Hono();
 
   app.post("/abort", async (c) => {
     try {
-      await harness.abort();
+      await getHarness().abort();
       return c.json({ ok: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : "未知错误";

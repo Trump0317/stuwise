@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
 import { eventsRoute } from "../../server/routes/events";
+import type { AgentHarness } from "@earendil-works/pi-agent-core";
 
 function createMockHarness() {
   const listeners: Array<(event: unknown) => void> = [];
@@ -21,7 +22,7 @@ function createMockHarness() {
 describe("GET /api/events — SSE 推流", () => {
   it("应返回 SSE Content-Type", async () => {
     const harness = createMockHarness();
-    const app = new Hono().route("/api", eventsRoute(harness as any));
+    const app = new Hono().route("/api", eventsRoute(() => harness as unknown as AgentHarness));
 
     // 用内部 AbortController 在短时间后断开
     const ac = new AbortController();
@@ -39,7 +40,7 @@ describe("GET /api/events — SSE 推流", () => {
 
   it("harness.subscribe 应在连接建立时被调用", async () => {
     const harness = createMockHarness();
-    const app = new Hono().route("/api", eventsRoute(harness as any));
+    const app = new Hono().route("/api", eventsRoute(() => harness as unknown as AgentHarness));
 
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), 20);

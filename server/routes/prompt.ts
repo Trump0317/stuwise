@@ -1,8 +1,7 @@
 import { Hono } from "hono";
-import type { AgentHarness } from "@earendil-works/pi-agent-core";
-import { autoCompactSession } from "../harness";
+import { getHarness, autoCompactSession } from "../harness";
 
-export function promptRoute(harness: AgentHarness) {
+export function promptRoute() {
   const app = new Hono();
 
   app.post("/prompt", async (c) => {
@@ -19,9 +18,8 @@ export function promptRoute(harness: AgentHarness) {
     }
 
     try {
-      // 自动检查是否需要压缩 session
+      const harness = getHarness();
       await autoCompactSession(harness);
-
       const result = await harness.prompt(text);
       return c.json({ ok: true, stopReason: result.stopReason });
     } catch (err) {

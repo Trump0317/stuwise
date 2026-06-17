@@ -1,10 +1,21 @@
 <script setup lang="ts">
+import { onMounted } from "vue";
 import ChatView from "./components/ChatView.vue";
 import ChatInput from "./components/ChatInput.vue";
 import SkillList from "./components/SkillList.vue";
+import SessionList from "./components/SessionList.vue";
 import { useAgent } from "./composables/useAgent";
 
-const { timeline, skills, isRunning, error, send, abort, clearError } = useAgent();
+const {
+  timeline, sessions, currentSessionId, skills,
+  isRunning, error,
+  init, send, abort, clearError,
+  createSession, deleteSession, switchSession,
+} = useAgent();
+
+onMounted(() => {
+  init();
+});
 
 function handleSend(text: string) {
   send(text);
@@ -22,20 +33,31 @@ function handleAbort() {
       <span class="subtitle">学生助理</span>
     </header>
     <SkillList :skills="skills" />
-    <div v-if="error" class="error-banner">
-      <span>{{ error }}</span>
-      <button class="error-close" @click="clearError">×</button>
-    </div>
-    <main class="app-main">
-      <ChatView :timeline="timeline" :is-running="isRunning" />
-    </main>
-    <footer class="app-footer">
-      <ChatInput
-        :is-running="isRunning"
-        @send="handleSend"
-        @abort="handleAbort"
+    <div class="app-body">
+      <SessionList
+        :sessions="sessions"
+        :current-id="currentSessionId"
+        @select="switchSession"
+        @create="createSession"
+        @delete="deleteSession"
       />
-    </footer>
+      <div class="app-chat">
+        <div v-if="error" class="error-banner">
+          <span>{{ error }}</span>
+          <button class="error-close" @click="clearError">×</button>
+        </div>
+        <main class="app-main">
+          <ChatView :timeline="timeline" :is-running="isRunning" />
+        </main>
+        <footer class="app-footer">
+          <ChatInput
+            :is-running="isRunning"
+            @send="handleSend"
+            @abort="handleAbort"
+          />
+        </footer>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -56,7 +78,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
   background: #fff;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
@@ -78,6 +100,19 @@ body {
 .subtitle {
   font-size: 14px;
   color: #999;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.app-chat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .app-main {

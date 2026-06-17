@@ -1,7 +1,12 @@
-import { AgentHarness, JsonlSessionRepo, loadSkills, formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
+import {
+  AgentHarness,
+  JsonlSessionRepo,
+  loadSkills,
+  formatSkillsForSystemPrompt,
+} from "@earendil-works/pi-agent-core";
 import { NodeExecutionEnv } from "@earendil-works/pi-agent-core/node";
 import { getModel, type Model } from "@earendil-works/pi-ai";
-import type { Session, JsonlSessionMetadata } from "@earendil-works/pi-agent-core";
+import type { Session, JsonlSessionMetadata, AgentMessage } from "@earendil-works/pi-agent-core";
 import { createAllTools } from "../tools/index.js";
 import fs from "node:fs/promises";
 
@@ -13,93 +18,191 @@ export interface CreateHarnessOptions {
   systemPrompt?: string;
 }
 
+export interface SessionInfo {
+  id: string;
+  createdAt: string;
+  cwd: string;
+  messageCount: number;
+}
+
 const DEFAULT_SYSTEM_PROMPT = "你是一个友好的学生助理，帮助用户处理日常学习任务。请用中文回复。";
 const DEFAULT_SESSION_DIR = "./data/sessions";
-
-/** 当前 session 的 JSONL 文件路径 */
-let currentSessionPath: string | null = null;
-
-/** 会话 entry 数超过此阈值时自动 compact */
 const COMPACT_THRESHOLD = 80;
 
-/**
- * 检查当前 session 是否需要 compact。
- * 通过读取 JSONL 文件行数估算，超过阈值返回 true。
- */
+/** 当前 harness 引用，支持动态切换 */
+let harnessRef: { current: AgentHarness } | null = null;
+
+/** 当前会话路径（用于 compact 检查） */
+let currentSessionPath: string | null = null;
+
+function getRepo(env: NodeExecutionEnv, sessionDir: string): JsonlSessionRepo {
+  return new JsonlSessionRepo({ fs: env, sessionsRoot: sessionDir });
+}
+
+/** 获取当前 harness */
+export function getHarness(): AgentHarness {
+  if (!harnessRef?.current) throw new Error("Harness 未初始化");
+  return harnessRef.current;
+}
+
+// === compact 检查 ===
+
 export async function shouldCompact(): Promise<boolean> {
   if (!currentSessionPath) return false;
   try {
     const content = await fs.readFile(currentSessionPath, "utf-8");
     const lines = content.split("\n").filter((l) => l.trim());
-    // 第 1 行是 header，其余是 entries；每个 message-pair 约 2-3 个 entry
-    // 保守估算：entries > COMPACT_THRESHOLD 时触发
     return lines.length - 1 > COMPACT_THRESHOLD;
   } catch {
     return false;
   }
 }
 
-export async function createHarness(options: CreateHarnessOptions) {
-  // provider/modelId 来自运行时配置（环境变量），类型断言绕过泛型约束
-  const model = (getModel as any)(options.provider, options.modelId) as Model<any>;
-  const env = new NodeExecutionEnv({ cwd: process.cwd() });
-
-  const sessionDir = options.sessionDir || DEFAULT_SESSION_DIR;
-  const repo = new JsonlSessionRepo({ fs: env, sessionsRoot: sessionDir });
-
-  const sessions = await repo.list();
-  let session: Session<JsonlSessionMetadata>;
-  if (sessions.length > 0) {
-    session = await repo.open(sessions[0]);
-  } else {
-    session = await repo.create({ cwd: sessionDir });
-  }
-
-  // 记录 session 路径供 compact 检查
-  const meta = await session.getMetadata();
-  currentSessionPath = (meta as JsonlSessionMetadata).path;
-
-  // 加载 Skills
-  const { skills, diagnostics } = await loadSkills(env, "./skills");
-  for (const d of diagnostics) {
-    console.warn(`[Skill] ${d.message}`);
-  }
-
-  // 组装 System Prompt
-  const basePrompt = options.systemPrompt || DEFAULT_SYSTEM_PROMPT;
-  const skillBlock = formatSkillsForSystemPrompt(skills);
-  const systemPrompt = [basePrompt, skillBlock].filter(Boolean).join("\n\n");
-
-  const harness =  new AgentHarness({
-    env,
-    session,
-    model,
-    tools: createAllTools(env),
-    systemPrompt,
-    resources: { skills },
-    getApiKeyAndHeaders: async () => ({ apiKey: options.apiKey }),
-  });
-
-  return harness;
-}
-
-/**
- * 检查当前 session 是否需要 compact，超过阈值自动压缩。
- * 返回 compaction 结果或 null（未触发）
- */
 export async function autoCompactSession(harness: AgentHarness) {
   const needed = await shouldCompact();
   if (!needed) return null;
-
   try {
     console.log("[compact] 会话条目超过阈值，自动压缩...");
     const result = await harness.compact();
-    console.log(
-      `[compact] 完成: ${result.summary.substring(0, 80)}... (tokensBefore: ${result.tokensBefore})`,
-    );
+    console.log(`[compact] 完成: ${result.summary.substring(0, 80)}...`);
     return result;
   } catch (err) {
     console.error("[compact] 自动压缩失败:", err);
     return null;
   }
+}
+
+// === 内部辅助 ===
+
+let _options: CreateHarnessOptions;
+let _env: NodeExecutionEnv;
+let _repo: JsonlSessionRepo;
+let _sessionDir: string;
+
+async function buildHarness(session: Session<JsonlSessionMetadata>): Promise<AgentHarness> {
+  const model = (getModel as any)(_options.provider, _options.modelId) as Model<any>;
+
+  const { skills, diagnostics } = await loadSkills(_env, "./skills");
+  for (const d of diagnostics) console.warn(`[Skill] ${d.message}`);
+
+  const basePrompt = _options.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+  const skillBlock = formatSkillsForSystemPrompt(skills);
+  const systemPrompt = [basePrompt, skillBlock].filter(Boolean).join("\n\n");
+
+  return new AgentHarness({
+    env: _env,
+    session,
+    model,
+    tools: createAllTools(_env),
+    systemPrompt,
+    resources: { skills },
+    getApiKeyAndHeaders: async () => ({ apiKey: _options.apiKey }),
+  });
+}
+
+// === 公共 API ===
+
+/** 初始化（启动时调用一次） */
+export async function createHarness(options: CreateHarnessOptions): Promise<AgentHarness> {
+  _options = options;
+  _env = new NodeExecutionEnv({ cwd: process.cwd() });
+  _sessionDir = options.sessionDir || DEFAULT_SESSION_DIR;
+  _repo = getRepo(_env, _sessionDir);
+
+  const sessions = await _repo.list();
+  let session: Session<JsonlSessionMetadata>;
+  if (sessions.length > 0) {
+    session = await _repo.open(sessions[0]);
+  } else {
+    session = await _repo.create({ cwd: _sessionDir });
+  }
+
+  const meta = await session.getMetadata();
+  currentSessionPath = (meta as JsonlSessionMetadata).path;
+
+  const harness = await buildHarness(session);
+  harnessRef = { current: harness };
+  return harness;
+}
+
+/** 列出所有 session */
+export async function listSessions(): Promise<SessionInfo[]> {
+  const metaList = await _repo.list();
+  const result: SessionInfo[] = [];
+  for (const meta of metaList) {
+    try {
+      const session = await _repo.open(meta);
+      const entries = await session.getEntries();
+      const msgCount = entries.filter((e) => e.type === "message").length;
+      result.push({
+        id: meta.id,
+        createdAt: meta.createdAt,
+        cwd: (meta as JsonlSessionMetadata).cwd,
+        messageCount: msgCount,
+      });
+    } catch {
+      result.push({
+        id: meta.id,
+        createdAt: meta.createdAt,
+        cwd: (meta as JsonlSessionMetadata).cwd,
+        messageCount: 0,
+      });
+    }
+  }
+  return result;
+}
+
+/** 新建 session */
+export async function createSession(): Promise<SessionInfo> {
+  const session = await _repo.create({ cwd: _sessionDir });
+  const meta = await session.getMetadata();
+  return {
+    id: meta.id,
+    createdAt: meta.createdAt,
+    cwd: (meta as JsonlSessionMetadata).cwd,
+    messageCount: 0,
+  };
+}
+
+/** 删除 session */
+export async function deleteSession(id: string): Promise<void> {
+  const metaList = await _repo.list();
+  const target = metaList.find((m) => m.id === id);
+  if (!target) throw new Error(`Session ${id} 不存在`);
+  await _repo.delete(target);
+}
+
+/** 切换 session */
+export async function switchSession(id: string): Promise<SessionInfo> {
+  const metaList = await _repo.list();
+  const target = metaList.find((m) => m.id === id);
+  if (!target) throw new Error(`Session ${id} 不存在`);
+
+  const session = await _repo.open(target);
+  const harness = await buildHarness(session);
+  harnessRef!.current = harness;
+
+  const meta = await session.getMetadata();
+  currentSessionPath = (meta as JsonlSessionMetadata).path;
+
+  const entries = await session.getEntries();
+  return {
+    id: meta.id,
+    createdAt: meta.createdAt,
+    cwd: (meta as JsonlSessionMetadata).cwd,
+    messageCount: entries.filter((e) => e.type === "message").length,
+  };
+}
+
+/** 获取 session 对话历史 */
+export async function getSessionMessages(id: string): Promise<AgentMessage[]> {
+  const metaList = await _repo.list();
+  const target = metaList.find((m) => m.id === id);
+  if (!target) throw new Error(`Session ${id} 不存在`);
+
+  const session = await _repo.open(target);
+  const entries = await session.getEntries();
+  return entries
+    .filter((e): e is { type: "message"; message: AgentMessage } & typeof e => e.type === "message")
+    .map((e) => e.message);
 }

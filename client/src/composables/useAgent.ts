@@ -1,5 +1,5 @@
-import { ref, watch } from "vue";
-import type { ChatMessage, ToolCallStatus, TimelineItem } from "../types";
+import { ref } from "vue";
+import type { ChatMessage, TimelineItem, SessionInfo } from "../types";
 import { nextId } from "../types";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -14,28 +14,14 @@ const TOOL_LABELS: Record<string, string> = {
   web_fetch: "抓取网页",
 };
 
-const STORAGE_KEY = "stuwise-messages";
-
-function loadMessages(): ChatMessage[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return [];
-}
-
-function saveMessages(messages: ChatMessage[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  } catch { /* quota exceeded, ignore */ }
-}
-
 function toTimeline(msgs: ChatMessage[]): TimelineItem[] {
   return msgs.map((m) => ({ id: m.id, kind: "message" as const, message: m, tool: null }));
 }
 
 export function useAgent() {
-  const timeline = ref<TimelineItem[]>(toTimeline(loadMessages()));
+  const timeline = ref<TimelineItem[]>([]);
+  const sessions = ref<SessionInfo[]>([]);
+  const currentSessionId = ref<string | null>(null);
   const skills = ref<Array<{ name: string; description: string }>>([]);
   const isRunning = ref(false);
   const error = ref<string | null>(null);
@@ -43,14 +29,81 @@ export function useAgent() {
   let eventSource: EventSource | null = null;
   let currentAssistantId: string | null = null;
 
-  // 持久化消息（tool 不入 localStorage）
-  watch(timeline, (val) => {
-    const msgs = val.filter((t) => t.kind === "message").map((t) => t.message!);
-    saveMessages(msgs);
-  }, { deep: true });
+  // === Session 管理 ===
 
-  // 页面加载时获取 skills
-  fetchSkills();
+  async function fetchSessions() {
+    try {
+      const res = await fetch("/api/session");
+      const data = await res.json();
+      sessions.value = data.sessions || [];
+    } catch { /* ignore */ }
+  }
+
+  async function loadSession(id: string) {
+    try {
+      const res = await fetch(`/api/session/${id}`);
+      const data = await res.json();
+      const messages: ChatMessage[] = (data.messages || []).map((m: any) => ({
+        id: nextId(),
+        role: m.role,
+        content: typeof m.content === "string"
+          ? m.content
+          : m.content?.map((c: any) => c.text || "").join("") || "",
+        timestamp: m.timestamp || Date.now(),
+      }));
+      timeline.value = toTimeline(messages);
+      currentSessionId.value = id;
+    } catch (e) {
+      error.value = "加载会话历史失败";
+    }
+  }
+
+  async function createSession() {
+    try {
+      const res = await fetch("/api/session", { method: "POST" });
+      const data = await res.json();
+      if (data.session) {
+        sessions.value = [data.session, ...sessions.value];
+        await switchSession(data.session.id);
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function deleteSession(id: string) {
+    try {
+      await fetch(`/api/session/${id}`, { method: "DELETE" });
+      sessions.value = sessions.value.filter((s) => s.id !== id);
+      if (currentSessionId.value === id) {
+        // 切换到第一个剩余 session，或清空
+        const next = sessions.value[0];
+        if (next) {
+          await loadSession(next.id);
+        } else {
+          timeline.value = [];
+          currentSessionId.value = null;
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function switchSession(id: string) {
+    try {
+      await fetch(`/api/session/${id}`, { method: "PUT" });
+      await loadSession(id);
+    } catch (e) {
+      error.value = "切换会话失败";
+    }
+  }
+
+  // === 初始化 ===
+
+  async function init() {
+    await fetchSessions();
+    await fetchSkills();
+    if (sessions.value.length > 0) {
+      await loadSession(sessions.value[0].id);
+    }
+  }
 
   async function fetchSkills() {
     try {
@@ -59,6 +112,8 @@ export function useAgent() {
       skills.value = data.skills || [];
     } catch { /* ignore */ }
   }
+
+  // === 发送消息 ===
 
   async function send(text: string): Promise<void> {
     if (isRunning.value) return;
@@ -113,7 +168,6 @@ export function useAgent() {
         cleanupEventSource();
         isRunning.value = false;
       }
-      // 后端返回 stopReason: "error" 且无 assistant 消息时展示错误
       else if (data.stopReason === "error" && !currentAssistantId) {
         error.value = "AI 请求失败，请检查 API Key 或网络";
         cleanupEventSource();
@@ -161,8 +215,6 @@ export function useAgent() {
             isStreaming: true,
           };
           timeline.value = [...timeline.value, { id: currentAssistantId, kind: "message", message: assistantMsg, tool: null }];
-        } else if (msg.role === "user") {
-          // 用户消息已在前端手动添加，跳过
         }
         break;
       }
@@ -242,5 +294,11 @@ export function useAgent() {
     error.value = null;
   }
 
-  return { timeline, skills, isRunning, error, send, abort, clearError, _handleEvent: handleEvent };
+  return {
+    timeline, sessions, currentSessionId, skills,
+    isRunning, error,
+    init, send, abort, clearError,
+    createSession, deleteSession, switchSession,
+    _handleEvent: handleEvent,
+  };
 }

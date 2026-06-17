@@ -1,12 +1,12 @@
 import { Hono } from "hono";
-import type { AgentHarness } from "@earendil-works/pi-agent-core";
+import { getHarness } from "../harness";
 
-export function compactRoute(harness: AgentHarness) {
+export function compactRoute() {
   const app = new Hono();
 
   app.post("/compact", async (c) => {
     try {
-      const result = await harness.compact();
+      const result = await getHarness().compact();
       return c.json({
         ok: true,
         summary: result.summary,

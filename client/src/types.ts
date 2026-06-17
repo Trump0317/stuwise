@@ -26,6 +26,13 @@ export interface AgentError {
   timestamp: number;
 }
 
+export interface SessionInfo {
+  id: string;
+  createdAt: string;
+  cwd: string;
+  messageCount: number;
+}
+
 let _id = 0;
 export function nextId(): string {
   return String(++_id);

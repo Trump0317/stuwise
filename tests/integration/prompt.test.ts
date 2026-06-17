@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import type { AgentHarness } from "@earendil-works/pi-agent-core";
+
+// Mock getHarness 和 autoCompactSession
+const mockGetHarness = vi.fn();
+const mockAutoCompact = vi.fn().mockResolvedValue(null);
+
+vi.mock("../../server/harness", () => ({
+  getHarness: () => mockGetHarness(),
+  autoCompactSession: (h: any) => mockAutoCompact(h),
+}));
+
 import { promptRoute } from "../../server/routes/prompt";
 import { abortRoute } from "../../server/routes/abort";
 import { eventsRoute } from "../../server/routes/events";
@@ -35,7 +45,8 @@ describe("POST /api/prompt", () => {
   beforeEach(() => {
     app = new Hono();
     harness = createMockHarness();
-    app.route("/api", promptRoute(harness as any));
+    mockGetHarness.mockReturnValue(harness);
+    app.route("/api", promptRoute());
   });
 
   it("正常情况应返回 200 和 stopReason", async () => {
@@ -90,9 +101,9 @@ describe("POST /api/prompt", () => {
     const errorHarness = createMockHarness({
       prompt: vi.fn().mockRejectedValue(new Error("LLM error")),
     });
-    const errApp = new Hono().route("/api", promptRoute(errorHarness as any));
+    mockGetHarness.mockReturnValue(errorHarness);
 
-    const res = await errApp.request("/api/prompt", {
+    const res = await app.request("/api/prompt", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: "你好" }),
@@ -103,19 +114,50 @@ describe("POST /api/prompt", () => {
     expect(json.ok).toBe(false);
     expect(json.error).toBeDefined();
   });
+
+  it("应处理非常大的 text", async () => {
+    const longText = "x".repeat(100000);
+    const res = await app.request("/api/prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: longText }),
+    });
+    expect(res.status).toBe(200);
+    expect(harness.prompt).toHaveBeenCalledWith(longText);
+  });
+
+  it("应保留特殊字符和 Unicode", async () => {
+    const specialText = "你好\n世界\t测试😂 <script>alert(1)</script>";
+    const res = await app.request("/api/prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: specialText }),
+    });
+    expect(res.status).toBe(200);
+    expect(harness.prompt).toHaveBeenCalledWith(specialText);
+  });
+
+  it("非法 JSON 应返回 400", async () => {
+    const res = await app.request("/api/prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "not-json",
+    });
+    expect(res.status).toBe(400);
+    expect(harness.prompt).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/abort", () => {
-  let app: Hono;
   let harness: MockHarness;
 
-  beforeEach(async () => {
-    app = new Hono();
+  beforeEach(() => {
     harness = createMockHarness();
-    app.route("/api", abortRoute(harness as any));
+    mockGetHarness.mockReturnValue(harness);
   });
 
   it("应返回 200", async () => {
+    const app = new Hono().route("/api", abortRoute());
     const res = await app.request("/api/abort", { method: "POST" });
 
     expect(res.status).toBe(200);
@@ -128,9 +170,10 @@ describe("POST /api/abort", () => {
     const errorHarness = createMockHarness({
       abort: vi.fn().mockRejectedValue(new Error("abort failed")),
     });
-    const errApp = new Hono().route("/api", abortRoute(errorHarness as any));
+    mockGetHarness.mockReturnValue(errorHarness);
 
-    const res = await errApp.request("/api/abort", { method: "POST" });
+    const app = new Hono().route("/api", abortRoute());
+    const res = await app.request("/api/abort", { method: "POST" });
 
     expect(res.status).toBe(500);
     const json = await res.json();
@@ -144,75 +187,16 @@ describe("GET /api/events", () => {
 
   beforeEach(() => {
     harness = createMockHarness();
+    mockGetHarness.mockReturnValue(harness);
   });
 
   it("应返回 SSE 响应头 (Content-Type, Connection, Cache-Control)", async () => {
-    const app = new Hono().route("/api", eventsRoute(harness as any));
+    const app = new Hono().route("/api", eventsRoute(() => harness as unknown as AgentHarness));
     const res = await app.request("/api/events");
 
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("text/event-stream");
     expect(res.headers.get("Connection")).toBe("keep-alive");
     expect(res.headers.get("Cache-Control")).toBe("no-cache");
-  });
-
-  it("客户端断开时应触发 AbortSignal", () => {
-    // M0-5 实现：harness.subscribe 的取消函数应在 AbortSignal 触发时调用
-    // M0-3 骨架阶段：验证信号机制存在即可
-    const signal = new AbortController().signal;
-    const listener = () => {};
-    signal.addEventListener("abort", listener);
-    signal.removeEventListener("abort", listener);
-    // 骨架阶段仅验证 API 存在，实际集成逻辑在 M0-5 测试
-  });
-
-  // M0-5 补充：流式事件推送测试
-});
-
-describe("POST /api/prompt — 边界输入", () => {
-  let app: Hono;
-  let harness: MockHarness;
-
-  beforeEach(async () => {
-    app = new Hono();
-    harness = createMockHarness();
-    app.route("/api", promptRoute(harness as any));
-  });
-
-  it("应处理非常大的 text", async () => {
-    const longText = "x".repeat(100000);
-
-    const res = await app.request("/api/prompt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: longText }),
-    });
-
-    expect(res.status).toBe(200);
-    expect(harness.prompt).toHaveBeenCalledWith(longText);
-  });
-
-  it("应保留特殊字符和 Unicode", async () => {
-    const specialText = "你好\n世界\t测试😂 <script>alert(1)</script>";
-
-    const res = await app.request("/api/prompt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: specialText }),
-    });
-
-    expect(res.status).toBe(200);
-    expect(harness.prompt).toHaveBeenCalledWith(specialText);
-  });
-
-  it("非法 JSON 应返回 400", async () => {
-    const res = await app.request("/api/prompt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "not-json",
-    });
-
-    expect(res.status).toBe(400);
-    expect(harness.prompt).not.toHaveBeenCalled();
   });
 });
