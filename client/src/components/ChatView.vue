@@ -8,6 +8,10 @@ const props = defineProps<{
   isRunning: boolean;
 }>();
 
+const emit = defineEmits<{
+  steer: [id: string, text: string];
+}>();
+
 const listRef = ref<HTMLElement>();
 
 watch(
@@ -34,6 +38,12 @@ watch(
           <div class="content">{{ item.message.content }}</div>
           <span v-if="item.message.isStreaming" class="cursor">|</span>
         </div>
+        <button
+          v-if="item.message.role === 'user' && !isRunning"
+          class="btn-edit"
+          title="编辑重生成"
+          @click="emit('steer', item.message.id, item.message.content)"
+        >✎</button>
       </div>
       <ToolCall
         v-else-if="item.kind === 'tool' && item.tool"
@@ -115,6 +125,24 @@ watch(
   animation: blink 1s step-end infinite;
   color: #4f46e5;
   font-weight: bold;
+}
+
+.btn-edit {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  align-self: center;
+}
+.message:hover .btn-edit {
+  opacity: 1;
+}
+.btn-edit:hover {
+  color: #4f46e5;
 }
 
 @keyframes blink {

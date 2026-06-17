@@ -294,11 +294,47 @@ export function useAgent() {
     error.value = null;
   }
 
+  // === Steer: 编辑最后一条用户消息并重新生成 ===
+
+  function steer(editedText: string) {
+    if (timeline.value.length < 2) return;
+
+    // 找到最后一条用户消息
+    let userIdx = -1;
+    for (let i = timeline.value.length - 1; i >= 0; i--) {
+      const item = timeline.value[i];
+      if (item.kind === "message" && item.message?.role === "user") {
+        userIdx = i;
+        break;
+      }
+    }
+    if (userIdx < 0) return;
+
+    // 更新用户消息文本
+    const userItem = timeline.value[userIdx];
+    if (userItem.kind === "message" && userItem.message) {
+      userItem.message.content = editedText;
+    }
+
+    // 移除用户消息之后的所有内容（AI 回复）
+    timeline.value = timeline.value.slice(0, userIdx + 1);
+
+    // 重新发送
+    send(editedText);
+  }
+
+  // === FollowUp: 在末尾追加追问 ===
+
+  function followUp(text: string) {
+    send(text);
+  }
+
   return {
     timeline, sessions, currentSessionId, skills,
     isRunning, error,
     init, send, abort, clearError,
     createSession, deleteSession, switchSession,
+    steer, followUp,
     _handleEvent: handleEvent,
   };
 }

@@ -11,6 +11,7 @@ const {
   isRunning, error,
   init, send, abort, clearError,
   createSession, deleteSession, switchSession,
+  steer,
 } = useAgent();
 
 onMounted(() => {
@@ -47,7 +48,11 @@ function handleAbort() {
           <button class="error-close" @click="clearError">×</button>
         </div>
         <main class="app-main">
-          <ChatView :timeline="timeline" :is-running="isRunning" />
+          <ChatView
+            :timeline="timeline"
+            :is-running="isRunning"
+            @steer="(id, text) => steer(text)"
+          />
         </main>
         <footer class="app-footer">
           <ChatInput
