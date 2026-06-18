@@ -100,53 +100,46 @@ description: Manage student notes
 
 ```
 stuwise/
-├── spec/                     ← 规格说明书（本目录）
-│   ├── index.md
-│   ├── overview.md
-│   ├── architecture.md
-│   ├── testing.md
-│   ├── workflow.md
-│   ├── milestones.md
-│   └── milestones/
+├── spec/                     ← 规格说明书
+│   ├── index.md overview.md architecture.md workflow.md
+│   ├── milestones.md milestones/ bug/
 ├── server/                   ← Hono 后端
-│   ├── index.ts              ← 入口：创建 app + harness + 注册路由
-│   ├── harness.ts            ← 入口（56 行），re-export 子模块
-│   ├── types.ts              ← 共享类型（SessionInfo/RuntimeConfig/...）
-│   ├── harness/              ← harness 子模块（按功能拆分）
-│   │   ├── state.ts          ← 内部共享状态（$）
+│   ├── index.ts              ← 入口：创建 harness + 注册 21 端点
+│   ├── harness.ts            ← re-export 子模块
+│   ├── types.ts              ← 共享类型
+│   ├── skills-loader.ts      ← 跨平台 Skill 加载（绕过 pi-agent-core 路径 bug）
+│   ├── harness/              ← 按功能拆分
+│   │   ├── state.ts          ← $ 共享状态
 │   │   ├── build.ts          ← buildHarness
-│   │   ├── session.ts        ← session CRUD
-│   │   ├── skill.ts          ← skill 开关
-│   │   ├── config.ts         ← 配置管理
-│   │   └── compact.ts        ← 压缩检查
-│   ├── routes/
-│   │   ├── prompt.ts
-│   │   ├── events.ts
-│   │   ├── steer.ts
-│   │   ├── abort.ts
-│   │   ├── skills.ts
-│   │   ├── session.ts
-│   │   ├── config.ts
-│   │   ├── health.ts
-│   │   └── compact.ts
-│   └── config.ts             ← 启动配置（env 读取）
-├── client/                   ← Vue 3 前端
-│   ├── index.html
-│   ├── vite.config.ts
+│   │   ├── session.ts        ← session CRUD + rename/pin
+│   │   ├── skill.ts          ← skill + tool 开关
+│   │   ├── config.ts         ← 配置 get/update
+│   │   ├── compact.ts        ← auto-compact
+│   │   └── outputs.ts        ← 产物扫描
+│   └── routes/
+│       ├── prompt.ts events.ts abort.ts steer.ts
+│       ├── skills.ts session.ts config.ts health.ts
+│       ├── outputs.ts compact.ts
+├── client/                   ← Vue 3 + Vite 前端
+│   ├── index.html vite.config.ts
 │   └── src/
-│       ├── main.ts
-│       ├── App.vue
+│       ├── main.ts App.vue types.ts
 │       ├── components/
-│       │   ├── ChatView.vue
-│       │   ├── ChatInput.vue
-│       │   ├── ToolCall.vue
-│       │   ├── SkillList.vue
-│       │   ├── SessionList.vue
-│       │   └── ConfigPanel.vue
-│       ├── composables/
-│       │   ├── useAgent.ts      ← 组合入口
-│       │   ├── useSession.ts    ← session 管理
-│       │   ├── useSkills.ts     ← skill 操作
+│       │   ├── bottom/StatusBar.vue
+│       │   ├── chat/ChatPanel ChatView MessageItem ChatInput
+│       │   ├── config/ConfigPanel.vue
+│       │   ├── header/Header.vue
+│       │   ├── outputs/OutputsPanel AllTab FileTab ImageTab LinkTab OutputItem
+│       │   ├── sidebar/Sidebar ToolBar PinnedSection SessionSection SessionItem
+│       │   └── skills-tools/SkillsPanel SkillTab ToolTab SkillItem
+│       └── composables/
+│           ├── useAgent.ts useSession.ts useSkills.ts
+│           ├── useTools.ts useOutputs.ts constants.ts
+├── tools/                    ← 9 个通用工具
+├── skills/                   ← Skill 定义（SKILL.md）
+├── data/                     ← 运行时数据（sessions/notes/）
+└── scripts/                  ← 构建脚本（build-dist/build-cjs/build-exe）
+```
 │       │   └── constants.ts     ← 常量提取
 │       └── types.ts
 ├── tools/                    ← 通用 AgentTool（9 个）
