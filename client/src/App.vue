@@ -6,6 +6,7 @@ import ChatPanel from "./components/chat/ChatPanel.vue";
 import SkillsPanel from "./components/skills-tools/SkillsPanel.vue";
 import OutputsPanel from "./components/outputs/OutputsPanel.vue";
 import ConfigPanel from "./components/ConfigPanel.vue";
+import StatusBar from "./components/StatusBar.vue";
 import { useAgent } from "./composables/useAgent";
 import { useSession } from "./composables/useSession";
 import { useSkills } from "./composables/useSkills";
@@ -155,6 +156,7 @@ async function handlePin(id: string, pinned: boolean) {
     </div>
     <div v-if="error" class="error-toast" @click="error = null">{{ error }} ✕</div>
     <ConfigPanel :show="showConfig" @close="showConfig = false" />
+    <StatusBar />
   </div>
 </template>
 
