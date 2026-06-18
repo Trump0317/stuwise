@@ -212,6 +212,13 @@ stuwise/
 | GET | `/api/skills` | 获取 Skill 列表（含启用状态） | `server/routes/skills.ts` |
 | PUT | `/api/skills/:name` | 切换 Skill 启用/禁用 | 同上 |
 
+### 工具
+
+| 方法 | 路径 | 说明 | 文件 |
+|------|------|------|------|
+| GET | `/api/tools` | 获取工具列表（含启用状态） | `server/routes/skills.ts` |
+| PUT | `/api/tools/:name` | 切换工具启用/禁用 | 同上 |
+
 ### 产物
 
 | 方法 | 路径 | 说明 | 文件 |
