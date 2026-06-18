@@ -21,15 +21,13 @@ await esbuild.build({
   define: { "process.env.NODE_ENV": "'production'" },
 });
 
-// 3. Copy runtime dependencies（skills 留空，避免 Windows/Bun 路径 bug）
-const runtimeDirs = ["tools"];
+// 3. Copy runtime dependencies
+const runtimeDirs = ["tools", "skills"];
 for (const dir of runtimeDirs) {
   if (existsSync(dir)) {
     cpSync(dir, resolve(distDir, dir), { recursive: true, force: true });
   }
 }
-// skills: 仅创建空目录
-mkdirSync(resolve(distDir, "skills"), { recursive: true });
 
 // 4. Copy .env.example
 if (existsSync(".env.example")) {

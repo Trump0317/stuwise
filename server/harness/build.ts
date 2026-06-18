@@ -1,4 +1,5 @@
-import { AgentHarness, loadSkills, formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
+import { AgentHarness, formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
+import { loadSkillsLocal } from "../skills-loader";
 import { getModel, type Model } from "@earendil-works/pi-ai";
 import type { Session, JsonlSessionMetadata } from "@earendil-works/pi-agent-core";
 import { createAllTools } from "../../tools/index.js";
@@ -9,7 +10,7 @@ const DEFAULT_SYSTEM_PROMPT = "你是一个友好的学生助理，帮助用户�
 export async function buildHarness(session: Session<JsonlSessionMetadata>): Promise<AgentHarness> {
   const model = (getModel as any)($.modelConfig.provider, $.modelConfig.modelId) as Model<any>;
 
-  const { skills, diagnostics } = await loadSkills($.env!, "./skills");
+  const { skills, diagnostics } = loadSkillsLocal("./skills");
   for (const d of diagnostics) console.warn(`[Skill] ${d.message}`);
 
   $.allSkills = skills.map((s) => ({ name: s.name, description: s.description, content: s.content, filePath: s.filePath }));

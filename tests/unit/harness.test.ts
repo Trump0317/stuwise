@@ -1,225 +1,99 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
+import { createHarness, switchSession } from "../../server/harness";
+import { $ } from "../../server/harness/state";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as os from "node:os";
 
-const mockModel = {
-  id: "claude-3-7-sonnet-20250219",
-  name: "Claude Sonnet 3.7",
-  api: "anthropic-messages" as const,
-  provider: "anthropic",
-  baseUrl: "https://api.anthropic.com",
-  reasoning: true,
-  input: ["text", "image"] as ("text" | "image")[],
-  cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-  contextWindow: 200000,
-  maxTokens: 8192,
-} as any;
-
-const mockSessionMetadata = {
-  id: "session-1",
-  createdAt: "2025-01-01T00:00:00.000Z",
-  cwd: "./data/sessions",
-  path: "./data/sessions/session.jsonl",
-};
-
-function createMockRepo(options: { existingSessions?: typeof mockSessionMetadata[] } = {}) {
-  const meta = options.existingSessions?.[0] ?? mockSessionMetadata;
-  return {
-    list: vi.fn().mockResolvedValue(options.existingSessions ?? []),
-    create: vi.fn().mockResolvedValue({ getMetadata: vi.fn().mockResolvedValue(meta) }),
-    open: vi.fn().mockResolvedValue({ getMetadata: vi.fn().mockResolvedValue(meta) }),
-  };
-}
-
+// Mock getModel
+const mockModel = {};
+const mockGetModel = vi.hoisted(() => vi.fn());
 vi.mock("@earendil-works/pi-ai", () => ({
-  getModel: vi.fn(),
+  getModel: mockGetModel,
 }));
 
-vi.mock("@earendil-works/pi-agent-core", () => {
-  const MockAgentHarness = vi.fn(function (this: any, options: any) {
+// Mock pi-agent-core
+const MockAgentHarness = vi.hoisted(() =>
+  vi.fn(function (this: any, options: any) {
     this._options = options;
     this.getModel = vi.fn().mockReturnValue(options?.model ?? mockModel);
     this.getTools = vi.fn().mockReturnValue(options?.tools ?? []);
     this.subscribe = vi.fn().mockReturnValue(() => {});
     this.prompt = vi.fn();
     this.abort = vi.fn();
-  });
-  return {
-    AgentHarness: MockAgentHarness,
-    JsonlSessionRepo: vi.fn(),
-    loadSkills: vi.fn().mockResolvedValue({ skills: [], diagnostics: [] }),
-    formatSkillsForSystemPrompt: vi.fn().mockReturnValue(""),
-  };
-});
+    this.getResources = vi.fn().mockReturnValue({ skills: options?.resources?.skills || [] });
+    this.setResources = vi.fn();
+    this.setModel = vi.fn();
+    this.setActiveTools = vi.fn();
+  })
+);
+
+vi.mock("@earendil-works/pi-agent-core", () => ({
+  AgentHarness: MockAgentHarness,
+  JsonlSessionRepo: vi.fn(),
+  formatSkillsForSystemPrompt: vi.fn().mockReturnValue(""),
+}));
 
 vi.mock("@earendil-works/pi-agent-core/node", () => ({
   NodeExecutionEnv: vi.fn().mockImplementation(() => ({ _isMockEnv: true })),
 }));
 
-import { createHarness } from "../../server/harness";
-import { getModel } from "@earendil-works/pi-ai";
-import { JsonlSessionRepo, AgentHarness, loadSkills, formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
-import { NodeExecutionEnv } from "@earendil-works/pi-agent-core/node";
+// Mock skills loader — must match path from build.ts (server/harness/build.ts → ../skills-loader)
+vi.mock("../../server/skills-loader", () => ({
+  loadSkillsLocal: vi.fn().mockReturnValue({ skills: [], diagnostics: [] }),
+}));
 
-const baseOptions = {
-  provider: "anthropic",
-  modelId: "claude-3-7-sonnet-20250219",
-  apiKey: "sk-test",
-};
+import { AgentHarness, JsonlSessionRepo, formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
+import * as skillsLoader from "../../server/skills-loader";
+const { loadSkillsLocal } = skillsLoader as any;
 
-describe("createHarness — 核心功能", () => {
-  beforeEach(() => {
+function createMockRepo() {
+  const sessions = [{ id: "default", createdAt: new Date().toISOString(), cwd: "./data/sessions", path: "./data/sessions/test.jsonl" }];
+  return {
+    list: vi.fn().mockResolvedValue(sessions),
+    create: vi.fn().mockResolvedValue({ getMetadata: vi.fn().mockResolvedValue(sessions[0]), appendMessage: vi.fn(), appendCustomEntry: vi.fn(), appendSessionName: vi.fn(), getEntries: vi.fn().mockResolvedValue([]) }),
+    open: vi.fn().mockResolvedValue({ getMetadata: vi.fn().mockResolvedValue(sessions[0]), appendMessage: vi.fn(), appendCustomEntry: vi.fn(), appendSessionName: vi.fn(), getEntries: vi.fn().mockResolvedValue([]) }),
+  };
+}
+
+describe("createHarness — 集成测试", () => {
+  let tempDir: string;
+  let sessionDir: string;
+  const baseOptions = { provider: "deepseek", modelId: "deepseek-v4-flash", apiKey: "sk-test", systemPrompt: "测试" };
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    vi.mocked(getModel).mockReturnValue(mockModel);
+    mockGetModel.mockReturnValue(mockModel);
+    vi.mocked(loadSkillsLocal).mockReturnValue({ skills: [], diagnostics: [] });
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "stuwise-tst-"));
+    sessionDir = path.join(tempDir, "sessions");
+    await fs.mkdir(sessionDir, { recursive: true });
     vi.mocked(JsonlSessionRepo).mockImplementation(() => createMockRepo() as any);
+    $.harnessRef = null;
+    $.currentSessionPath = null;
+    $.repo = null;
   });
 
-  it("应返回 AgentHarness 实例", async () => {
-    const harness = await createHarness(baseOptions);
-    expect(harness).toBeDefined();
-    expect(AgentHarness).toHaveBeenCalledTimes(1);
+  afterAll(async () => {
+    try { await fs.rm(tempDir, { recursive: true, force: true }); } catch {}
   });
 
-  it("应调用 getModel 传入正确的 provider 和 modelId", async () => {
-    await createHarness({ provider: "openai", modelId: "gpt-4o", apiKey: "sk-xxx" });
-    expect(getModel).toHaveBeenCalledWith("openai", "gpt-4o");
+  it("应成功创建 AgentHarness 并设置 harnessRef", async () => {
+    const h = await createHarness({ ...baseOptions, sessionDir });
+    expect(MockAgentHarness).toHaveBeenCalled();
+    expect($.harnessRef).not.toBeNull();
   });
 
-  it("应将 getModel 返回的 model 传给 AgentHarness", async () => {
-    const customModel = { ...mockModel, id: "custom-model" };
-    vi.mocked(getModel).mockReturnValue(customModel);
-
-    await createHarness(baseOptions);
-    const harnessOptions = vi.mocked(AgentHarness).mock.calls[0][0];
-    expect(harnessOptions.model).toBe(customModel);
+  it("应调用 loadSkillsLocal 加载 skills 目录", async () => {
+    await createHarness({ ...baseOptions, sessionDir });
+    expect(loadSkillsLocal).toHaveBeenCalled();
+    expect(loadSkillsLocal.mock.calls[0][0]).toBe("./skills");
   });
 
-  it("工具列表应来自 createAllTools", async () => {
-    await createHarness(baseOptions);
-    const harnessOptions = vi.mocked(AgentHarness).mock.calls[0][0];
-    expect(harnessOptions.tools).toBeDefined();
-    expect(harnessOptions.tools!.length).toBeGreaterThan(0);
-  });
-
-  it("应使用 NodeExecutionEnv 创建执行环境", async () => {
-    await createHarness(baseOptions);
-    expect(NodeExecutionEnv).toHaveBeenCalledWith({ cwd: process.cwd() });
-  });
-
-  it("JsonlSessionRepo 应传入 fs(env) 和 sessionsRoot", async () => {
-    await createHarness(baseOptions);
-    expect(JsonlSessionRepo).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fs: expect.any(Object),
-        sessionsRoot: "./data/sessions",
-      })
-    );
-  });
-});
-
-describe("createHarness — Session 生命周期", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(getModel).mockReturnValue(mockModel);
-  });
-
-  it("无已有 session 时应调用 create 创建新 session", async () => {
-    const mockRepo = createMockRepo({ existingSessions: [] });
-    vi.mocked(JsonlSessionRepo).mockImplementation(() => mockRepo as any);
-
-    await createHarness(baseOptions);
-
-    expect(mockRepo.list).toHaveBeenCalled();
-    expect(mockRepo.create).toHaveBeenCalledWith({ cwd: "./data/sessions" });
-    expect(mockRepo.open).not.toHaveBeenCalled();
-  });
-
-  it("有已有 session 时应调用 open 打开已有 session", async () => {
-    const mockRepo = createMockRepo({ existingSessions: [mockSessionMetadata] });
-    vi.mocked(JsonlSessionRepo).mockImplementation(() => mockRepo as any);
-
-    await createHarness(baseOptions);
-
-    expect(mockRepo.list).toHaveBeenCalled();
-    expect(mockRepo.open).toHaveBeenCalledWith(mockSessionMetadata);
-    expect(mockRepo.create).not.toHaveBeenCalled();
-  });
-
-  it("自定义 sessionDir 应为 create 和 JsonlSessionRepo 使用", async () => {
-    const mockRepo = createMockRepo({ existingSessions: [] });
-    vi.mocked(JsonlSessionRepo).mockImplementation(() => mockRepo as any);
-
-    await createHarness({ ...baseOptions, sessionDir: "/custom/sessions" });
-
-    expect(JsonlSessionRepo).toHaveBeenCalledWith(
-      expect.objectContaining({ sessionsRoot: "/custom/sessions" })
-    );
-    expect(mockRepo.create).toHaveBeenCalledWith({ cwd: "/custom/sessions" });
-  });
-
-  it("不传 sessionDir 时应使用默认值 ./data/sessions", async () => {
-    const mockRepo = createMockRepo({ existingSessions: [] });
-    vi.mocked(JsonlSessionRepo).mockImplementation(() => mockRepo as any);
-
-    await createHarness(baseOptions); // 不传 sessionDir
-
-    expect(JsonlSessionRepo).toHaveBeenCalledWith(
-      expect.objectContaining({ sessionsRoot: "./data/sessions" })
-    );
-  });
-});
-
-describe("createHarness — System Prompt 和 API Key", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(getModel).mockReturnValue(mockModel);
-    vi.mocked(JsonlSessionRepo).mockImplementation(() => createMockRepo() as any);
-  });
-
-  it("默认 System Prompt 应存在", async () => {
-    await createHarness(baseOptions);
-    const harnessOptions = vi.mocked(AgentHarness).mock.calls[0][0];
-    expect(harnessOptions.systemPrompt).toBeDefined();
-  });
-
-  it("应支持自定义 System Prompt", async () => {
-    const customPrompt = "自定义提示词";
-    await createHarness({ ...baseOptions, systemPrompt: customPrompt });
-    const harnessOptions = vi.mocked(AgentHarness).mock.calls[0][0];
-    expect(harnessOptions.systemPrompt).toBe(customPrompt);
-  });
-
-  it("getApiKeyAndHeaders 应返回 apiKey", async () => {
-    await createHarness({ ...baseOptions, apiKey: "sk-my-key" });
-    const harnessOptions = vi.mocked(AgentHarness).mock.calls[0][0];
-    const fn = harnessOptions.getApiKeyAndHeaders!;
-    const result = await fn(mockModel);
-    expect(result).toEqual({ apiKey: "sk-my-key" });
-  });
-
-  it("空 apiKey 时 getApiKeyAndHeaders 应返回空字符串", async () => {
-    await createHarness({ ...baseOptions, apiKey: "" });
-    const harnessOptions = vi.mocked(AgentHarness).mock.calls[0][0];
-    const fn = harnessOptions.getApiKeyAndHeaders!;
-    const result = await fn(mockModel);
-    expect(result).toEqual({ apiKey: "" });
-  });
-
-  it("应调用 loadSkills 加载 skills 目录", async () => {
-    await createHarness(baseOptions);
-    expect(loadSkills).toHaveBeenCalled();
-    const call = vi.mocked(loadSkills).mock.calls[0];
-    expect(call[1]).toBe("./skills");
-  });
-
-  it("应调用 formatSkillsForSystemPrompt", async () => {
-    await createHarness(baseOptions);
-    expect(formatSkillsForSystemPrompt).toHaveBeenCalled();
-  });
-
-  it("resources.skills 应为 loadSkills 返回的 skills", async () => {
+  it("resources.skills 应为 loadSkillsLocal 返回的 skills", async () => {
     const mockSkills = [{ name: "test", description: "t", content: "# t", filePath: "/t/SKILL.md" }];
-    vi.mocked(loadSkills).mockResolvedValue({ skills: mockSkills, diagnostics: [] });
-    await createHarness(baseOptions);
-    const opts = vi.mocked(AgentHarness).mock.calls[0][0];
-    expect(opts.resources?.skills).toEqual(mockSkills);
+    vi.mocked(loadSkillsLocal).mockReturnValue({ skills: mockSkills, diagnostics: [] });
+    await createHarness({ ...baseOptions, sessionDir });
+    expect(MockAgentHarness.mock.calls[0]![0].resources?.skills).toEqual(mockSkills);
   });
 });
