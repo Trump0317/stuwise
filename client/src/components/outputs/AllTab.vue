@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import OutputItem from "./OutputItem.vue";
+import type { OutputItem } from "../../types";
+import OutputItemView from "./OutputItem.vue";
+
+defineProps<{
+  outputs: OutputItem[];
+}>();
 </script>
 
 <template>
   <div>
-    <OutputItem icon="📄" name="Vue3响应式原理.md" time="14:30" />
-    <OutputItem icon="📄" name="学习计划.md" time="昨天" />
-    <OutputItem icon="🖼" name="架构图.png" time="6/15" />
-    <OutputItem icon="🔗" name="Vue3官方文档" time="6/15" />
-    <OutputItem icon="📄" name="TypeScript笔记.md" time="6/14" />
+    <OutputItemView v-for="o in outputs" :key="o.path" :output="o" />
+    <div v-if="outputs.length === 0" class="empty">暂无产物</div>
   </div>
 </template>
+
+<style scoped>
+.empty { font-size: 13px; color: #bbb; padding: 20px 0; text-align: center; }
+</style>

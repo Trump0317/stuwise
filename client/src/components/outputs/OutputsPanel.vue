@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch, onMounted } from "vue";
 import AllTab from "./AllTab.vue";
 import ImageTab from "./ImageTab.vue";
 import FileTab from "./FileTab.vue";
 import LinkTab from "./LinkTab.vue";
+import { useOutputs } from "../../composables/useOutputs";
+
+const { outputs, loading, fetchOutputs } = useOutputs();
 
 const activeTab = ref<"all" | "image" | "file" | "link">("all");
+
+onMounted(() => fetchOutputs("all"));
+
+watch(activeTab, (tab) => {
+  if (tab === "link") fetchOutputs("all");
+  else fetchOutputs(tab);
+});
 </script>
 
 <template>
@@ -17,10 +27,10 @@ const activeTab = ref<"all" | "image" | "file" | "link">("all");
       <button class="tab-btn" :class="{ active: activeTab === 'link' }" @click="activeTab = 'link'">链接</button>
     </div>
     <div class="panel-body">
-      <AllTab v-if="activeTab === 'all'" />
-      <ImageTab v-if="activeTab === 'image'" />
-      <FileTab v-if="activeTab === 'file'" />
-      <LinkTab v-if="activeTab === 'link'" />
+      <AllTab v-if="activeTab === 'all'" :outputs="outputs" />
+      <ImageTab v-if="activeTab === 'image'" :outputs="outputs" />
+      <FileTab v-if="activeTab === 'file'" :outputs="outputs" />
+      <LinkTab v-if="activeTab === 'link'" :outputs="outputs" />
     </div>
   </div>
 </template>

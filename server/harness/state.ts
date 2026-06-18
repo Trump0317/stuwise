@@ -12,7 +12,9 @@ export const $ = {
   harnessRef: null as { current: AgentHarness } | null,
   currentSessionPath: null as string | null,
   skillEnabled: new Map<string, boolean>(),
+  toolEnabled: new Map<string, boolean>(),
   allSkills: [] as Array<{ name: string; description: string; content: string; filePath: string }>,
+  allToolNames: [] as string[],
   apiKey: "",
   modelConfig: { provider: "", modelId: "" },
 

@@ -1,28 +1,48 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import type { SessionInfo } from "../../types";
 import ToolBar from "./ToolBar.vue";
 import PinnedSection from "./PinnedSection.vue";
 import SessionSection from "./SessionSection.vue";
 
 defineProps<{
   open: boolean;
+  sessions: SessionInfo[];
+  pinnedSessions: SessionInfo[];
+  unpinnedSessions: SessionInfo[];
+  currentSessionId: string | null;
 }>();
 
 const emit = defineEmits<{
   newChat: [];
   skills: [];
   outputs: [];
+  select: [id: string];
+  delete: [id: string];
+  rename: [id: string, name: string];
+  pin: [id: string, pinned: boolean];
 }>();
-
-const selectedId = ref<string | null>("s1");
 </script>
 
 <template>
   <aside class="sidebar" :class="{ closed: !open }">
     <div class="sidebar-inner">
       <ToolBar @new-chat="emit('newChat')" @skills="emit('skills')" @outputs="emit('outputs')" />
-      <PinnedSection :selected-id="selectedId" @select="selectedId = $event" />
-      <SessionSection :selected-id="selectedId" @select="selectedId = $event" />
+      <PinnedSection
+        :sessions="pinnedSessions"
+        :selected-id="currentSessionId"
+        @select="(id: string) => emit('select', id)"
+        @delete="(id: string) => emit('delete', id)"
+        @rename="(id: string, name: string) => emit('rename', id, name)"
+        @pin="(id: string, pinned: boolean) => emit('pin', id, pinned)"
+      />
+      <SessionSection
+        :sessions="unpinnedSessions"
+        :selected-id="currentSessionId"
+        @select="(id: string) => emit('select', id)"
+        @delete="(id: string) => emit('delete', id)"
+        @rename="(id: string, name: string) => emit('rename', id, name)"
+        @pin="(id: string, pinned: boolean) => emit('pin', id, pinned)"
+      />
     </div>
   </aside>
 </template>

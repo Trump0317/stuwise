@@ -4,6 +4,9 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   isStreaming?: boolean;
+  subtype?: "normal" | "thinking" | "tool_call";
+  toolName?: string;
+  toolStatus?: "running" | "done" | "error";
 }
 
 export interface ToolCallStatus {
@@ -12,13 +15,6 @@ export interface ToolCallStatus {
   label: string;
   state: "running" | "done" | "error";
   result?: string;
-}
-
-export interface TimelineItem {
-  id: string;
-  kind: "message" | "tool";
-  message: ChatMessage | null;
-  tool: ToolCallStatus | null;
 }
 
 export interface AgentError {
@@ -31,6 +27,16 @@ export interface SessionInfo {
   createdAt: string;
   cwd: string;
   messageCount: number;
+  name?: string;
+  pinned?: boolean;
+}
+
+export interface OutputItem {
+  name: string;
+  path: string;
+  type: "image" | "file" | "link";
+  time: string;
+  size: number;
 }
 
 let _id = 0;

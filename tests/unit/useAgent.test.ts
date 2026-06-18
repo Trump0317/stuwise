@@ -2,20 +2,13 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useAgent } from "../../client/src/composables/useAgent";
-import type { ChatMessage } from "../../client/src/types";
 
 // Mock fetch
 const mockFetch = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
 globalThis.fetch = mockFetch;
 
-function getMessages(agent: ReturnType<typeof useAgent>): ChatMessage[] {
-  return agent.timeline.value
-    .filter((t) => t.kind === "message" && t.message)
-    .map((t) => t.message!);
-}
-
-function lastMsg(agent: ReturnType<typeof useAgent>): ChatMessage | undefined {
-  const msgs = getMessages(agent);
+function lastMsg(agent: ReturnType<typeof useAgent>) {
+  const msgs = agent.messages.value;
   return msgs[msgs.length - 1];
 }
 
@@ -61,7 +54,7 @@ describe("useAgent._handleEvent", () => {
         message: { role: "user", content: [{ type: "text", text: "hi" }] },
       });
 
-      expect(getMessages(agent).length).toBe(0);
+      expect(agent.messages.value.length).toBe(0);
     });
   });
 
@@ -103,7 +96,7 @@ describe("useAgent._handleEvent", () => {
           assistantMessageEvent: { type: "text_delta", delta: "x" },
         });
       }).not.toThrow();
-      expect(getMessages(agent).length).toBe(0);
+      expect(agent.messages.value.length).toBe(0);
     });
   });
 
@@ -136,7 +129,7 @@ describe("useAgent._handleEvent", () => {
         type: "message_start",
         message: { role: "assistant", content: [] },
       });
-      expect(getMessages(agent).length).toBe(1);
+      expect(agent.messages.value.length).toBe(1);
 
       agent._handleEvent({
         type: "message_update",
@@ -166,7 +159,7 @@ describe("useAgent — 状态操作", () => {
   });
 
   it("初始状态应为空", () => {
-    expect(agent.timeline.value).toEqual([]);
+    expect(agent.messages.value).toEqual([]);
     expect(agent.isRunning.value).toBe(false);
     expect(agent.error.value).toBeNull();
   });

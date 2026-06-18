@@ -1,9 +1,23 @@
 <script setup lang="ts">
-import OutputItem from "./OutputItem.vue";
+import type { OutputItem } from "../../types";
+import OutputItemView from "./OutputItem.vue";
+
+defineProps<{
+  outputs: OutputItem[];
+}>();
 </script>
 
 <template>
   <div>
-    <OutputItem icon="🖼" name="架构图.png" time="6/15" />
+    <OutputItemView
+      v-for="o in outputs.filter(x => x.type === 'image')"
+      :key="o.path"
+      :output="o"
+    />
+    <div v-if="outputs.filter(x => x.type === 'image').length === 0" class="empty">暂无图片</div>
   </div>
 </template>
+
+<style scoped>
+.empty { font-size: 13px; color: #bbb; padding: 20px 0; text-align: center; }
+</style>

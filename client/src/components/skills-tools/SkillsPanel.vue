@@ -3,6 +3,16 @@ import { ref } from "vue";
 import SkillTab from "./SkillTab.vue";
 import ToolTab from "./ToolTab.vue";
 
+defineProps<{
+  skills: Array<{ name: string; description: string; enabled: boolean }>;
+  tools: Array<{ name: string; description: string; enabled: boolean }>;
+}>();
+
+const emit = defineEmits<{
+  toggleSkill: [name: string];
+  toggleTool: [name: string];
+}>();
+
 const activeTab = ref<"skills" | "tools">("skills");
 </script>
 
@@ -13,8 +23,8 @@ const activeTab = ref<"skills" | "tools">("skills");
       <button class="tab-btn" :class="{ active: activeTab === 'tools' }" @click="activeTab = 'tools'">工具</button>
     </div>
     <div class="panel-body">
-      <SkillTab v-if="activeTab === 'skills'" />
-      <ToolTab v-if="activeTab === 'tools'" />
+      <SkillTab v-if="activeTab === 'skills'" :skills="skills" @toggle="emit('toggleSkill', $event)" />
+      <ToolTab v-if="activeTab === 'tools'" :tools="tools" @toggle="emit('toggleTool', $event)" />
     </div>
   </div>
 </template>

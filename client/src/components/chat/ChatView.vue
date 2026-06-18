@@ -1,15 +1,6 @@
 <script setup lang="ts">
 import MessageItem from "./MessageItem.vue";
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  isStreaming?: boolean;
-  subtype?: "normal" | "thinking" | "tool_call";
-  toolName?: string;
-  toolStatus?: "running" | "done" | "error";
-}
+import type { ChatMessage } from "../../types";
 
 defineProps<{
   messages: ChatMessage[];

@@ -16,10 +16,9 @@ const emit = defineEmits<{
       <span class="item-name">{{ name }}</span>
       <span class="item-desc">{{ desc }}</span>
     </div>
-    <label class="toggle-switch" @click="emit('toggle')">
-      <input type="checkbox" :checked="enabled" />
+    <div class="toggle-switch" @click="emit('toggle')" :class="{ on: enabled }">
       <span class="slider"></span>
-    </label>
+    </div>
   </div>
 </template>
 
@@ -42,14 +41,13 @@ const emit = defineEmits<{
   position: relative;
   width: 40px; height: 22px;
   flex-shrink: 0; margin-left: 12px;
+  cursor: pointer;
 }
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
 
 .slider {
   position: absolute; inset: 0;
   background: #d1d5db;
   border-radius: 22px;
-  cursor: pointer;
   transition: background 0.2s;
 }
 .slider::before {
@@ -61,6 +59,6 @@ const emit = defineEmits<{
   border-radius: 50%;
   transition: transform 0.2s;
 }
-input:checked + .slider { background: #4f46e5; }
-input:checked + .slider::before { transform: translateX(18px); }
+.toggle-switch.on .slider { background: #4f46e5; }
+.toggle-switch.on .slider::before { transform: translateX(18px); }
 </style>

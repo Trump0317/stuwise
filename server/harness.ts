@@ -35,5 +35,5 @@ export async function createHarness(options: CreateHarnessOptions): Promise<Agen
 // re-export
 export { shouldCompact, autoCompactSession } from "./harness/compact";
 export { listSessions, createSession, deleteSession, switchSession, getSessionMessages, renameSession, pinSession } from "./harness/session";
-export { getSkillsWithStatus, toggleSkill } from "./harness/skill";
+export { getSkillsWithStatus, toggleSkill, getToolsWithStatus, toggleTool } from "./harness/skill";
 export { getConfig, updateConfig } from "./harness/config";

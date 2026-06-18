@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+defineProps<{
+  isRunning: boolean;
+}>();
+
+const emit = defineEmits<{
+  send: [text: string];
+  abort: [];
+}>();
+
 const text = ref("");
 
 function handleSend() {
-  if (!text.value.trim()) return;
+  const v = text.value.trim();
+  if (!v) return;
+  emit("send", v);
   text.value = "";
 }
 
@@ -23,9 +34,11 @@ function handleKeydown(e: KeyboardEvent) {
       placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"
       rows="1"
       class="input-area"
+      :disabled="isRunning"
       @keydown="handleKeydown"
     ></textarea>
-    <button class="btn-send" @click="handleSend">发送</button>
+    <button v-if="isRunning" class="btn-abort" @click="emit('abort')">中断</button>
+    <button v-else class="btn-send" @click="handleSend">发送</button>
   </div>
 </template>
 
@@ -58,4 +71,13 @@ function handleKeydown(e: KeyboardEvent) {
   white-space: nowrap;
 }
 .btn-send:hover { background: #4338ca; }
+
+.btn-abort {
+  padding: 10px 16px;
+  border: 1px solid #dc2626; border-radius: 8px;
+  background: #fff; color: #dc2626;
+  font-size: 13px; cursor: pointer;
+  white-space: nowrap;
+}
+.btn-abort:hover { background: #fef2f2; }
 </style>

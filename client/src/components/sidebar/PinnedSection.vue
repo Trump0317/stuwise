@@ -1,29 +1,39 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import type { SessionInfo } from "../../types";
 import SessionItem from "./SessionItem.vue";
 
 defineProps<{
+  sessions: SessionInfo[];
   selectedId: string | null;
 }>();
 
 const emit = defineEmits<{
   select: [id: string];
+  delete: [id: string];
+  rename: [id: string, name: string];
+  pin: [id: string, pinned: boolean];
 }>();
 
 const expanded = ref(true);
 </script>
 
 <template>
-  <div class="pinned-section">
+  <div class="pinned-section" v-if="sessions.length > 0">
     <div class="section-header" @click="expanded = !expanded">
       <span class="section-title">置顶</span>
       <span class="toggle">{{ expanded ? '▾' : '▸' }}</span>
     </div>
     <div v-if="expanded">
       <SessionItem
-        id="p1" time="14:30" message="你好，今天有什么可以帮..."
-        :active="selectedId === 'p1'" pinned
-        @select="emit('select', 'p1')"
+        v-for="s in sessions"
+        :key="s.id"
+        :session="s"
+        :active="selectedId === s.id"
+        @select="emit('select', s.id)"
+        @delete="emit('delete', s.id)"
+        @rename="(name) => emit('rename', s.id, name)"
+        @pin="(pinned) => emit('pin', s.id, pinned)"
       />
     </div>
   </div>

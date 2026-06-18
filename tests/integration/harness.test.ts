@@ -21,7 +21,7 @@ vi.mock("@earendil-works/pi-ai", () => ({
   getModel: mockGetModel,
 }));
 
-import { createHarness } from "../../server/harness";
+import { createHarness, listSessions, renameSession, pinSession } from "../../server/harness";
 import { getModel } from "@earendil-works/pi-ai";
 
 describe("createHarness 集成测试", () => {
@@ -87,5 +87,47 @@ describe("createHarness 集成测试", () => {
 
     expect(entriesAfterSecond.length).toBe(entriesAfterFirst.length);
     expect(entriesAfterSecond.sort()).toEqual(entriesAfterFirst.sort());
+  });
+
+  // M3-10: 重命名/置顶
+  it("renameSession 应写入 SessionInfoEntry 并在列表中返回 name", async () => {
+    await createHarness({ ...baseOpts, sessionDir });
+    const sessions = await listSessions();
+    expect(sessions.length).toBe(1);
+    expect(sessions[0]!.name).toBeUndefined();
+    expect(sessions[0]!.pinned).toBeUndefined();
+
+    await renameSession(sessions[0]!.id, "测试会话");
+    const updated = await listSessions();
+    expect(updated[0]!.name).toBe("测试会话");
+    expect(updated[0]!.pinned).toBeUndefined();
+  });
+
+  it("pinSession 应写入 pin entry 并在列表中返回 pinned", async () => {
+    await createHarness({ ...baseOpts, sessionDir });
+    const sessions = await listSessions();
+    expect(sessions[0]!.pinned).toBeUndefined();
+
+    await pinSession(sessions[0]!.id, true);
+    const updated = await listSessions();
+    expect(updated[0]!.pinned).toBe(true);
+  });
+
+  it("pinSession false 应取消置顶", async () => {
+    await createHarness({ ...baseOpts, sessionDir });
+    const sessions = await listSessions();
+    await pinSession(sessions[0]!.id, true);
+    expect((await listSessions())[0]!.pinned).toBe(true);
+
+    await pinSession(sessions[0]!.id, false);
+    expect((await listSessions())[0]!.pinned).toBe(false);
+  });
+
+  it("renameSession 不存在的 session 应抛错", async () => {
+    await expect(renameSession("nonexistent", "x")).rejects.toThrow();
+  });
+
+  it("pinSession 不存在的 session 应抛错", async () => {
+    await expect(pinSession("nonexistent", true)).rejects.toThrow();
   });
 });

@@ -17,6 +17,12 @@ export async function buildHarness(session: Session<JsonlSessionMetadata>): Prom
     if (!$.skillEnabled.has(s.name)) $.skillEnabled.set(s.name, true);
   }
 
+  const toolDefs = createAllTools($.env!);
+  $.allToolNames = toolDefs.map((t) => t.name);
+  for (const name of $.allToolNames) {
+    if (!$.toolEnabled.has(name)) $.toolEnabled.set(name, true);
+  }
+
   const enabledSkills = skills.filter((s) => $.skillEnabled.get(s.name) !== false);
   const basePrompt = ($.options?.systemPrompt) || DEFAULT_SYSTEM_PROMPT;
   const skillBlock = formatSkillsForSystemPrompt(enabledSkills);
@@ -26,7 +32,8 @@ export async function buildHarness(session: Session<JsonlSessionMetadata>): Prom
     env: $.env!,
     session,
     model,
-    tools: createAllTools($.env!),
+    tools: toolDefs,
+    activeToolNames: $.allToolNames.filter((n) => $.toolEnabled.get(n) !== false),
     systemPrompt,
     resources: { skills: enabledSkills },
     getApiKeyAndHeaders: async () => ({ apiKey: $.apiKey }),

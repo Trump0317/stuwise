@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import type { SessionInfo } from "../../types";
 import SessionItem from "./SessionItem.vue";
 
 defineProps<{
+  sessions: SessionInfo[];
   selectedId: string | null;
 }>();
 
 const emit = defineEmits<{
   select: [id: string];
+  delete: [id: string];
+  rename: [id: string, name: string];
+  pin: [id: string, pinned: boolean];
 }>();
 
 const expanded = ref(true);
@@ -21,19 +26,14 @@ const expanded = ref(true);
     </div>
     <div v-if="expanded">
       <SessionItem
-        id="s1" time="昨天" message="帮我创建一个笔记..."
-        :active="selectedId === 's1'" status="replying"
-        @select="emit('select', 's1')"
-      />
-      <SessionItem
-        id="s2" time="6月15日" message="搜索Vue3响应式原理..."
-        :active="selectedId === 's2'"
-        @select="emit('select', 's2')"
-      />
-      <SessionItem
-        id="s3" time="6月14日" message="帮我整理文件夹..."
-        :active="selectedId === 's3'"
-        @select="emit('select', 's3')"
+        v-for="s in sessions"
+        :key="s.id"
+        :session="s"
+        :active="selectedId === s.id"
+        @select="emit('select', s.id)"
+        @delete="emit('delete', s.id)"
+        @rename="(name) => emit('rename', s.id, name)"
+        @pin="(pinned) => emit('pin', s.id, pinned)"
       />
     </div>
   </div>

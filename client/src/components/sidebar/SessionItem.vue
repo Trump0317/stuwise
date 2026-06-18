@@ -1,58 +1,95 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import type { SessionInfo } from "../../types";
 
-defineProps<{
-  id?: string;
-  time: string;
-  message: string;
+const props = defineProps<{
+  session: SessionInfo;
   active?: boolean;
-  status?: "idle" | "thinking" | "replying";
-  pinned?: boolean;
 }>();
 
 const emit = defineEmits<{
   select: [];
-  pin: [];
-  rename: [];
+  pin: [pinned: boolean];
+  rename: [name: string];
   delete: [];
 }>();
 
 const menuOpen = ref(false);
+const renaming = ref(false);
+const renameText = ref("");
 
-function toggleMenu() {
-  menuOpen.value = !menuOpen.value;
-}
-
-function closeMenu() {
-  menuOpen.value = false;
-}
+function toggleMenu() { menuOpen.value = !menuOpen.value; }
+function closeMenu() { menuOpen.value = false; }
 
 function handleAction(action: "pin" | "rename" | "delete") {
-  emit(action);
+  if (action === "rename") {
+    renaming.value = true;
+    renameText.value = props.session.name || "";
+    closeMenu();
+    return;
+  }
+  if (action === "pin") emit("pin", !props.session.pinned);
+  if (action === "delete") emit("delete");
   closeMenu();
+}
+
+function submitRename() {
+  const v = renameText.value.trim();
+  if (v) emit("rename", v);
+  renaming.value = false;
 }
 
 function handleContextMenu(e: MouseEvent) {
   e.preventDefault();
   menuOpen.value = true;
 }
+
+const timeLabel = computed(() => {
+  try {
+    const d = new Date(props.session.createdAt);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "刚刚";
+    if (mins < 60) return `${mins}分钟前`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}小时前`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "昨天";
+    return `${d.getMonth() + 1}月${d.getDate()}日`;
+  } catch { return ""; }
+});
+
+const displayName = computed(() =>
+  props.session.name || `新会话 (${props.session.messageCount} 条消息)`
+);
 </script>
 
 <template>
   <div class="session-item" :class="{ active }" @contextmenu="handleContextMenu" @click="emit('select')">
-    <span class="dot" :class="status || 'idle'"></span>
+    <span class="dot" :class="active ? 'replying' : 'idle'"></span>
     <div class="session-info">
-      <span class="session-msg">{{ message }}</span>
+      <span v-if="!renaming" class="session-msg">{{ displayName }}</span>
+      <input
+        v-else
+        v-model="renameText"
+        class="rename-input"
+        @blur="submitRename"
+        @keydown.enter="submitRename"
+        @keydown.escape="renaming = false"
+        @click.stop
+        ref="renameInput"
+      />
     </div>
     <div class="hover-actions">
-      <span class="session-time">{{ time }}</span>
+      <span class="session-time">{{ timeLabel }}</span>
       <button class="btn-more" @click.stop="toggleMenu">⋯</button>
     </div>
 
     <!-- 右键菜单 -->
     <div v-if="menuOpen" class="context-menu" @click.stop>
       <button class="menu-item" @click="handleAction('pin')">
-        📌 {{ pinned ? '取消置顶' : '置顶' }}
+        {{ session.pinned ? '📌 取消置顶' : '📌 置顶' }}
       </button>
       <button class="menu-item" @click="handleAction('rename')">
         ✏️ 重命名
@@ -63,7 +100,6 @@ function handleContextMenu(e: MouseEvent) {
       </button>
     </div>
 
-    <!-- 点击外部关闭菜单 -->
     <div v-if="menuOpen" class="menu-backdrop" @click="closeMenu"></div>
   </div>
 </template>
@@ -88,13 +124,7 @@ function handleContextMenu(e: MouseEvent) {
   flex-shrink: 0;
   background: #d1d5db;
 }
-.dot.thinking { background: #3b82f6; animation: pulse 1.2s ease-in-out infinite; }
 .dot.replying { background: #3b82f6; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
 
 .session-info {
   flex: 1; min-width: 0;
@@ -103,13 +133,24 @@ function handleContextMenu(e: MouseEvent) {
 .session-msg {
   font-size: 13px; color: #333;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: block;
+}
+
+.rename-input {
+  width: 100%;
+  border: 1px solid #4f46e5;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 13px; font-family: inherit;
+  outline: none;
 }
 
 .hover-actions {
   display: flex; align-items: center; gap: 4px;
   opacity: 0; flex-shrink: 0;
 }
-.session-item:hover .hover-actions { opacity: 1; }
+.session-item:hover .hover-actions,
+.session-item.active .hover-actions { opacity: 1; }
 
 .session-time {
   font-size: 11px; color: #bbb;
