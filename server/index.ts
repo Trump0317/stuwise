@@ -36,11 +36,13 @@ app.route("/api", configRoute());
 app.route("/api", healthRoute());
 app.route("/api", outputsRoute());
 
-// 生产环境：serve frontend static files（仅当 dist/client 存在时）
-const distClient = new URL("../dist/client", import.meta.url).pathname;
-if (existsSync(distClient)) {
-  app.use("/*", serveStatic({ root: distClient }));
-  app.get("/*", serveStatic({ path: "index.html", root: distClient }));
+// 生产/standalone：serve frontend static files
+const distClient = new URL("client", import.meta.url).pathname;
+const envClient = new URL("../dist/client", import.meta.url).pathname;
+const clientDir = existsSync(distClient) ? distClient : existsSync(envClient) ? envClient : null;
+if (clientDir) {
+  app.use("/*", serveStatic({ root: clientDir }));
+  app.get("/*", serveStatic({ path: "index.html", root: clientDir }));
 }
 
 serve({ fetch: app.fetch, port: config.port }, (info) => {
