@@ -8,6 +8,7 @@
 | [M1](milestones/M1-tools.md) | 工具系统（通用工具接入） | 12 | [x] |
 | [M2](milestones/M2-skills.md) | Skill 系统（场景指令注入） | 3 | [x] |
 | [M3](milestones/M3-v1.0.md) | v1.0 正式版 | 12 | [x] |
+| M4 | 学生场景 Skills | | [ ] |
 
 ## 进度统计
 
