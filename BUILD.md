@@ -5,7 +5,7 @@
 1. 安装 Node.js 20+ https://nodejs.org
 2. 打开 PowerShell 或 Git Bash
 
-## 步骤
+## 编译步骤
 
 ```powershell
 # 1. 克隆项目
@@ -15,35 +15,24 @@ cd stuwise
 # 2. 安装依赖
 npm install
 
-# 3. 配置 API Key（二选一）
-#    方式 A: 编辑 .env 文件
-notepad .env
-#    方式 B: 启动后在设置面板输入
-
-# 4. 构建
+# 3. 构建前端 + 打包服务端
 npm run build:dist
 
-# 5. 打包 exe
+# 4. 生成 .exe
 cd dist/stuwise
 npx nexe server.cjs -o stuwise.exe --target win-x64-20.11.0
 
-# 6. 验证
+# 5. 验证
 .\stuwise.exe
-# 打开浏览器 http://localhost:3000
+# 打开浏览器 http://localhost:3000 → 点右上角 ⚙ 设置 API Key
 ```
 
-## 最终产物
+## 分发
 
-```
-dist/stuwise/stuwise.exe   ← 拷到任意 Windows 双击运行
-```
+将 `dist/stuwise/stuwise.exe` 发给用户，用户：
+1. 双击 `stuwise.exe`
+2. 浏览器打开 `http://localhost:3000`
+3. 点 ⚙ → 输入自己的 API Key → 保存
+4. 开始使用
 
-> **注意**：如果 nexe 下载 Node 二进制失败，加 `--build` 参数自行编译（耗时较长）。
-
-## 便携版（不需要 .exe）
-
-```powershell
-npm run build:dist
-cd dist/stuwise
-.\start.bat
-```
+> API Key 不预置在 exe 中，由用户自行配置。
