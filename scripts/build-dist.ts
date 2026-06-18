@@ -21,11 +21,17 @@ await esbuild.build({
   define: { "process.env.NODE_ENV": "'production'" },
 });
 
-// 3. Copy runtime dependencies
+// 3. Copy runtime dependencies（排除 .gitkeep）
 const runtimeDirs = ["tools", "skills"];
 for (const dir of runtimeDirs) {
   if (existsSync(dir)) {
     cpSync(dir, resolve(distDir, dir), { recursive: true, force: true });
+    // 清除 .gitkeep
+    const gitkeep = resolve(distDir, dir, ".gitkeep");
+    if (existsSync(gitkeep)) {
+      const { unlinkSync } = await import("node:fs");
+      unlinkSync(gitkeep);
+    }
   }
 }
 

@@ -20,7 +20,7 @@ npm run build:dist
 
 # 4. 生成 .exe
 cd dist/stuwise
-npx nexe server.cjs -o stuwise.exe --target win-x64-20.11.0
+bun build server.mjs --compile --outfile stuwise.exe
 
 # 5. 验证
 .\stuwise.exe
