@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"tsx server/index.ts\" \"vite --config client/vite.config.ts\"",
+    "build": "npm run build:client",
+    "build:client": "vite build --config client/vite.config.ts",
+    "start": "tsx server/index.ts",
     "test": "npx vitest run"
   },
   "dependencies": {
