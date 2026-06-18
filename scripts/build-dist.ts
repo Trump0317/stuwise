@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { cpSync } from "node:fs";
 import { resolve } from "node:path";
 import esbuild from "esbuild";
@@ -29,7 +29,6 @@ for (const dir of runtimeDirs) {
     // 清除 .gitkeep
     const gitkeep = resolve(distDir, dir, ".gitkeep");
     if (existsSync(gitkeep)) {
-      const { unlinkSync } = await import("node:fs");
       unlinkSync(gitkeep);
     }
   }
