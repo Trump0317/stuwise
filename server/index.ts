@@ -17,34 +17,56 @@ import { configRoute } from "./routes/config";
 import { healthRoute } from "./routes/health";
 import { outputsRoute } from "./routes/outputs";
 
-await createHarness({
-  provider: config.model.provider,
-  modelId: config.model.modelId,
-  apiKey: config.getApiKey(),
-});
+// 解决 CJS 打包兼容：用 __dirname 替代 import.meta.url
+const serverDir = (() => {
+  try { return import.meta.url ? new URL(".", import.meta.url).pathname : process.cwd(); }
+  catch { return process.cwd(); }
+})();
 
-const app = new Hono();
+const clientDir = (() => {
+  const candidates = [
+    `${serverDir}client`,
+    `${serverDir}../dist/client`,
+    `${process.cwd()}/dist/client`,
+    `${process.cwd()}/client`,
+  ];
+  for (const d of candidates) {
+    try { if (existsSync(d)) return d; } catch {}
+  }
+  return null;
+})();
 
-app.route("/api", promptRoute());
-app.route("/api", eventsRoute(() => getHarness()));
-app.route("/api", abortRoute());
-app.route("/api", compactRoute());
-app.route("/api", skillsRoute());
-app.route("/api", sessionRoute());
-app.route("/api", steerRoute());
-app.route("/api", configRoute());
-app.route("/api", healthRoute());
-app.route("/api", outputsRoute());
+async function main() {
+  await createHarness({
+    provider: config.model.provider,
+    modelId: config.model.modelId,
+    apiKey: config.getApiKey(),
+  });
 
-// 生产/standalone：serve frontend static files
-const distClient = new URL("client", import.meta.url).pathname;
-const envClient = new URL("../dist/client", import.meta.url).pathname;
-const clientDir = existsSync(distClient) ? distClient : existsSync(envClient) ? envClient : null;
-if (clientDir) {
-  app.use("/*", serveStatic({ root: clientDir }));
-  app.get("/*", serveStatic({ path: "index.html", root: clientDir }));
+  const app = new Hono();
+
+  app.route("/api", promptRoute());
+  app.route("/api", eventsRoute(() => getHarness()));
+  app.route("/api", abortRoute());
+  app.route("/api", compactRoute());
+  app.route("/api", skillsRoute());
+  app.route("/api", sessionRoute());
+  app.route("/api", steerRoute());
+  app.route("/api", configRoute());
+  app.route("/api", healthRoute());
+  app.route("/api", outputsRoute());
+
+  if (clientDir) {
+    app.use("/*", serveStatic({ root: clientDir }));
+    app.get("/*", serveStatic({ path: "index.html", root: clientDir }));
+  }
+
+  serve({ fetch: app.fetch, port: config.port }, (info) => {
+    console.log(`Stuwise server: http://localhost:${info.port}`);
+  });
 }
 
-serve({ fetch: app.fetch, port: config.port }, (info) => {
-  console.log(`Stuwise server: http://localhost:${info.port}`);
+main().catch((err) => {
+  console.error("启动失败:", err);
+  process.exit(1);
 });
