@@ -1,6 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpSync } from "node:fs";
-import { resolve, sep as pathSep } from "node:path";
+import { resolve } from "node:path";
 import esbuild from "esbuild";
 
 const distDir = resolve("dist/stuwise");
@@ -21,17 +21,15 @@ await esbuild.build({
   define: { "process.env.NODE_ENV": "'production'" },
 });
 
-// 3. Copy runtime dependencies（排除 .gitkeep，skills 跳过子目录）
-const runtimeDirs = ["tools", "skills"];
+// 3. Copy runtime dependencies（skills 留空，避免 Windows/Bun 路径 bug）
+const runtimeDirs = ["tools"];
 for (const dir of runtimeDirs) {
   if (existsSync(dir)) {
-    cpSync(dir, resolve(distDir, dir), {
-      recursive: true,
-      force: true,
-      filter: (src: string) => !src.endsWith(".gitkeep") && !src.includes(pathSep + "note-management"),
-    });
+    cpSync(dir, resolve(distDir, dir), { recursive: true, force: true });
   }
 }
+// skills: 仅创建空目录
+mkdirSync(resolve(distDir, "skills"), { recursive: true });
 
 // 4. Copy .env.example
 if (existsSync(".env.example")) {
