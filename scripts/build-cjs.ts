@@ -9,7 +9,7 @@ await esbuild.build({
   target: "node20",
   format: "cjs",
   outfile: "dist/stuwise/server.cjs",
-  external: ["@earendil-works/*", "dotenv"],
+  external: ["@earendil-works/*"],
   define: { "process.env.NODE_ENV": "'production'" },
 });
 
