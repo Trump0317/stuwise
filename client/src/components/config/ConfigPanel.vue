@@ -9,7 +9,7 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-const apiKey = ref("");
+const provider = ref("");
 const modelId = ref("");
 const hasKey = ref(false);
 const saving = ref(false);
@@ -21,6 +21,7 @@ onMounted(async () => {
     const data = await res.json();
     if (data.ok) {
       hasKey.value = data.data.hasApiKey;
+      provider.value = data.data.provider || "";
       modelId.value = data.data.modelId || "";
     }
   } catch { /* ignore */ }
@@ -30,6 +31,7 @@ async function save() {
   saving.value = true;
   try {
     const body: Record<string, string> = { modelId: modelId.value };
+    if (provider.value) body.provider = provider.value;
     if (apiKey.value) body.apiKey = apiKey.value;
     const res = await fetch("/api/config", {
       method: "PUT",
@@ -65,6 +67,15 @@ async function save() {
             type="password"
             class="field-input"
             :placeholder="hasKey ? '已设置（输入新 Key 替换）' : '请输入 API Key'"
+          />
+        </label>
+        <label class="field">
+          <span class="field-label">Provider</span>
+          <input
+            v-model="provider"
+            type="text"
+            class="field-input"
+            placeholder="如 deepseek / anthropic"
           />
         </label>
         <label class="field">
