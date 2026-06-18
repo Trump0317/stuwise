@@ -73,7 +73,7 @@ async function save() {
             v-model="modelId"
             type="text"
             class="field-input"
-            placeholder="如 deepseek-v4-flash"
+                        placeholder="如 deepseek-v4-flash"
           />
         </label>
         <div v-if="message" class="msg">{{ message }}</div>
