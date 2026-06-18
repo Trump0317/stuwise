@@ -5,7 +5,7 @@ import Sidebar from "./components/sidebar/Sidebar.vue";
 import ChatPanel from "./components/chat/ChatPanel.vue";
 import SkillsPanel from "./components/skills-tools/SkillsPanel.vue";
 import OutputsPanel from "./components/outputs/OutputsPanel.vue";
-import ConfigPanel from "./components/ConfigPanel.vue";
+import ConfigPanel from "./components/config/ConfigPanel.vue";
 import StatusBar from "./components/bottom/StatusBar.vue";
 import { useAgent } from "./composables/useAgent";
 import { useSession } from "./composables/useSession";
