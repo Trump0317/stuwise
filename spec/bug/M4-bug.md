@@ -4,6 +4,7 @@
 |---|------|------|------|
 | B12 | 上传按钮 📎 无效 | [x] | script 缺少 triggerUpload/uploading/fileInput/handleFile 定义 |
 | B13 | 产物面板看不到文件 | [x] | sessionScope 过滤掉 data/outputs/ 全局文件 |
+| B14 | DOCX 上传失败 | [x] | convert.ts 用 require 但 ESM 环境报错，改为 import |
 
 ## B13 定位
 
