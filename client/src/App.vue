@@ -152,7 +152,7 @@ async function handlePin(id: string, pinned: boolean) {
         @toggle-skill="toggleSkill"
         @toggle-tool="toggleTool"
       />
-      <OutputsPanel v-else-if="activePanel === 'outputs'" />
+      <OutputsPanel v-else-if="activePanel === 'outputs'" :session-id="currentSessionId" />
     </div>
     <div v-if="error" class="error-toast" @click="error = null">{{ error }} ✕</div>
     <ConfigPanel :show="showConfig" @close="showConfig = false" />
