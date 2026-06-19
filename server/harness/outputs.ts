@@ -20,10 +20,13 @@ export async function listOutputs(sessionId?: string, type = "all"): Promise<Out
   const baseDir = path.join(process.cwd(), "data");
   let results: OutputItem[] = [];
 
-  // 有 sessionId → 扫描该 session 的 outputs 子目录
+  // 有 sessionId → 扫描该 session 的 outputs 子目录 + data/ 全局产物
   if (sessionId) {
     const dir = path.join(baseDir, "sessions", sessionId, "outputs");
     results = await scanDir(dir, false);
+    // 也扫描 data/ 根目录及子目录（全局产物，如 data/outputs/）
+    const global = await scanDir(baseDir, true);
+    results = [...results, ...global];
   } else {
     // 无 sessionId → 扫描所有 sessions 的 outputs + data/ 根目录旧产物
     results = await scanDir(path.join(baseDir, "sessions"), true);

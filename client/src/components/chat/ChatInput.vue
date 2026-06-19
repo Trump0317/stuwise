@@ -11,6 +11,8 @@ const emit = defineEmits<{
 }>();
 
 const text = ref("");
+const uploading = ref(false);
+const fileInput = ref<HTMLInputElement>();
 
 function handleSend() {
   const v = text.value.trim();
@@ -24,6 +26,29 @@ function handleKeydown(e: KeyboardEvent) {
     e.preventDefault();
     handleSend();
   }
+}
+
+function triggerUpload() {
+  fileInput.value?.click();
+}
+
+async function handleFile(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  uploading.value = true;
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/convert", { method: "POST", body: form });
+    const data = await res.json();
+    if (data.ok) {
+      text.value = `[模板: ${data.data.name}]\n\n${data.data.markdown}\n\n---\n${text.value}`;
+    }
+  } catch { /* ignore */ }
+  uploading.value = false;
+  input.value = "";
 }
 </script>
 
