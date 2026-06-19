@@ -1,10 +1,8 @@
 import { Hono } from "hono";
 import { execFileSync } from "node:child_process";
-import { writeFileSync, mkdtempSync, rmSync, existsSync } from "node:fs";
+import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
-
-const SCRIPT = resolve(process.cwd(), "skills/experiment-report/scripts/convert.ts");
 
 export function convertRoute() {
   const app = new Hono();
@@ -20,6 +18,9 @@ export function convertRoute() {
         return c.json({ ok: false, error: "仅支持 .docx 和 .md 文件" }, 400);
       }
 
+      const skill = c.req.query("skill") || "experiment-report";
+      const script = resolve(process.cwd(), `skills/${skill}/scripts/convert.ts`);
+
       const buffer = Buffer.from(await file.arrayBuffer());
 
       if (ext === "md") {
@@ -32,7 +33,7 @@ export function convertRoute() {
       writeFileSync(tmpFile, buffer);
 
       try {
-        const result = execFileSync("npx", ["tsx", SCRIPT, tmpFile], { encoding: "utf-8", timeout: 30000 });
+        const result = execFileSync("npx", ["tsx", script, tmpFile], { encoding: "utf-8", timeout: 30000 });
         return c.json(JSON.parse(result));
       } catch (e: any) {
         if (e.stdout) return c.json(JSON.parse(e.stdout));
