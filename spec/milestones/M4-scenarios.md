@@ -121,8 +121,8 @@ description: Write experiment reports interactively — fill template sections s
 | # | 任务 | 预估 |
 |---|------|------|
 | 1 | SKILL.md + 默认模板 | [x] |
-| 2 | DOCX/MD 模板上传 + 格式转换 | 中 |
-| 3 | 前端模板上传入口 | 小 |
+| 2 | DOCX/MD 模板上传 + 格式转换 | [x] |
+| 3 | 前端模板上传入口 | [x] |
 | 4 | 交互式填写流程验证 | 小 |
 | 5 | 端到端验证 | 小 |
 
