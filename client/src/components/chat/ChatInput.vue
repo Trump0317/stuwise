@@ -29,6 +29,21 @@ function handleKeydown(e: KeyboardEvent) {
 
 <template>
   <div class="chat-input">
+    <button
+      class="btn-upload"
+      :disabled="isRunning || uploading"
+      title="上传模板 (.docx / .md)"
+      @click="triggerUpload"
+    >
+      {{ uploading ? '⏳' : '📎' }}
+    </button>
+    <input
+      ref="fileInput"
+      type="file"
+      accept=".docx,.md"
+      class="file-hidden"
+      @change="handleFile"
+    />
     <textarea
       v-model="text"
       placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"
@@ -81,4 +96,15 @@ function handleKeydown(e: KeyboardEvent) {
   white-space: nowrap;
 }
 .btn-abort:hover { background: #fef2f2; }
+
+.file-hidden { display: none; }
+
+.btn-upload {
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb; border-radius: 8px;
+  background: #fff; cursor: pointer;
+  font-size: 16px;
+}
+.btn-upload:hover { background: #f5f5f5; }
+.btn-upload:disabled { opacity: 0.5; cursor: default; }
 </style>
