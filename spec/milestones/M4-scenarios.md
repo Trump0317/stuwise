@@ -120,7 +120,7 @@ description: Write experiment reports interactively — fill template sections s
 
 | # | 任务 | 预估 |
 |---|------|------|
-| 1 | SKILL.md + 默认模板 | 小 |
+| 1 | SKILL.md + 默认模板 | [x] |
 | 2 | DOCX/MD 模板上传 + 格式转换 | 中 |
 | 3 | 前端模板上传入口 | 小 |
 | 4 | 交互式填写流程验证 | 小 |
