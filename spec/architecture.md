@@ -137,7 +137,10 @@ stuwise/
 │           ├── useTools.ts useOutputs.ts constants.ts
 ├── tools/                    ← 9 个通用工具
 ├── skills/                   ← Skill 定义（SKILL.md）
-├── data/                     ← 运行时数据（sessions/notes/）
+├── data/                     ← 运行时数据
+│   ├── sessions/              ← JSONL 会话文件
+│   │   └── <id>/outputs/      ← 各 session 的产物文件
+│   └── notes/
 └── scripts/                  ← 构建脚本（build-dist/build-cjs/build-exe）
 ```
 │       │   └── constants.ts     ← 常量提取
@@ -216,7 +219,7 @@ stuwise/
 
 | 方法 | 路径 | 说明 | 文件 |
 |------|------|------|------|
-| GET | `/api/outputs?type=all\|image\|file\|link` | 产物列表 | `server/routes/outputs.ts` |
+| GET | `/api/outputs?type=all\|image\|file\|link&sessionId=<id>` | 指定 session 的产物（按 session 隔离） | `server/routes/outputs.ts` |
 
 ### 配置
 
