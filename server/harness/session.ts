@@ -66,6 +66,7 @@ export async function switchSession(id: string): Promise<void> {
   const t = list.find((m: JsonlSessionMetadata) => m.id === id);
   if (!t) throw new Error(`Session ${id} 不存在`);
   $.currentSessionPath = t.path;
+  $.currentSessionId = id;
   const s = await r.open(t);
   const harness = await buildHarness(s);
   if ($.harnessRef) $.harnessRef.current = harness;

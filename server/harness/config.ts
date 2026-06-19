@@ -12,7 +12,13 @@ export async function updateConfig(c: { apiKey?: string; provider?: string; mode
   if (c.provider !== undefined) { $.modelConfig.provider = c.provider; ch = true; }
   if (c.modelId !== undefined) { $.modelConfig.modelId = c.modelId; ch = true; }
   if (ch && $.harnessRef?.current) {
-    $.harnessRef.current.setModel((getModel as any)($.modelConfig.provider, $.modelConfig.modelId) as Model<any>);
+    try {
+      const model = (getModel as any)($.modelConfig.provider, $.modelConfig.modelId);
+      if (!model) throw new Error(`模型不存在: ${$.modelConfig.provider}/${$.modelConfig.modelId}`);
+      await $.harnessRef.current.setModel(model as Model<any>);
+    } catch (err) {
+      throw new Error(`模型切换失败: ${(err as Error).message}`);
+    }
   }
   return getConfig();
 }

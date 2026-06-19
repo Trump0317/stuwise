@@ -11,6 +11,8 @@ const emit = defineEmits<{
 }>();
 
 const text = ref("");
+const uploading = ref(false);
+const fileInput = ref<HTMLInputElement>();
 
 function handleSend() {
   const v = text.value.trim();
@@ -25,10 +27,48 @@ function handleKeydown(e: KeyboardEvent) {
     handleSend();
   }
 }
+
+function triggerUpload() {
+  fileInput.value?.click();
+}
+
+async function handleFile(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  uploading.value = true;
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/convert", { method: "POST", body: form });
+    const data = await res.json();
+    if (data.ok) {
+      text.value = `[模板: ${data.data.name}]\n\n${data.data.markdown}\n\n---\n${text.value}`;
+    }
+  } catch { /* ignore */ }
+  uploading.value = false;
+  input.value = "";
+}
 </script>
 
 <template>
   <div class="chat-input">
+    <button
+      class="btn-upload"
+      :disabled="isRunning || uploading"
+      title="上传模板 (.docx / .md)"
+      @click="triggerUpload"
+    >
+      {{ uploading ? '⏳' : '📎' }}
+    </button>
+    <input
+      ref="fileInput"
+      type="file"
+      accept=".docx,.md"
+      class="file-hidden"
+      @change="handleFile"
+    />
     <textarea
       v-model="text"
       placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"
@@ -81,4 +121,15 @@ function handleKeydown(e: KeyboardEvent) {
   white-space: nowrap;
 }
 .btn-abort:hover { background: #fef2f2; }
+
+.file-hidden { display: none; }
+
+.btn-upload {
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb; border-radius: 8px;
+  background: #fff; cursor: pointer;
+  font-size: 16px;
+}
+.btn-upload:hover { background: #f5f5f5; }
+.btn-upload:disabled { opacity: 0.5; cursor: default; }
 </style>

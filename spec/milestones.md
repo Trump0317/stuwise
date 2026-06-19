@@ -7,16 +7,16 @@
 | [M0](milestones/M0-skeleton.md) | 工程骨架 + 最小可用原型 | 6 | [x] |
 | [M1](milestones/M1-tools.md) | 工具系统（通用工具接入） | 12 | [x] |
 | [M2](milestones/M2-skills.md) | Skill 系统（场景指令注入） | 3 | [x] |
-| [M3](milestones/M3-v1.0.md) | v1.0 正式版 | 13 | [x] |
-| M4 | 学生场景 Skills | — | [ ] |
+| [M3](milestones/M3-v1.0.md) | v1.0 正式版 | 14 | [x] |
+| [M4](milestones/M4-scenarios.md) | 学生场景 Skills | 8 | [x] |
 
 ## 进度统计
 
 | 状态 | 数量 |
 |------|------|
-| 已完成 `[x]` | 34 |
-| 未开始 `[ ]` | 1 |
-| 合计 | 35 |
+| 已完成 `[x]` | 42 |
+| 未开始 `[ ]` | 0 |
+| 合计 | 42 |
 
 ## M0 目标
 

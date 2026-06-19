@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, toRef } from "vue";
 import AllTab from "./AllTab.vue";
 import ImageTab from "./ImageTab.vue";
 import FileTab from "./FileTab.vue";
 import LinkTab from "./LinkTab.vue";
 import { useOutputs } from "../../composables/useOutputs";
 
-const { outputs, loading, fetchOutputs } = useOutputs();
+const props = defineProps<{ sessionId: string | null }>();
+
+const { outputs, loading, fetchOutputs } = useOutputs(toRef(props, "sessionId"));
 
 const activeTab = ref<"all" | "image" | "file" | "link">("all");
 

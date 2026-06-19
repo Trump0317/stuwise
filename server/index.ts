@@ -16,6 +16,7 @@ import { steerRoute } from "./routes/steer";
 import { configRoute } from "./routes/config";
 import { healthRoute } from "./routes/health";
 import { outputsRoute } from "./routes/outputs";
+import { convertRoute } from "./routes/convert";
 
 // 解决 CJS 打包兼容：用 __dirname 替代 import.meta.url
 const serverDir = (() => {
@@ -55,6 +56,7 @@ async function main() {
   app.route("/api", configRoute());
   app.route("/api", healthRoute());
   app.route("/api", outputsRoute());
+  app.route("/api", convertRoute());
 
   if (clientDir) {
     app.use("/*", serveStatic({ root: clientDir }));
