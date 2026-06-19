@@ -4,8 +4,8 @@
  * 用法: node convert.ts <input.docx|input.md>
  * 输出: JSON { ok, data: { markdown, name } }
  */
-const fs = require("fs");
-const path = require("path");
+import fs from "node:fs";
+import path from "node:path";
 
 async function main() {
   const input = process.argv[2];
@@ -25,7 +25,7 @@ async function main() {
 
   // DOCX: mammoth 转换
   if (ext === ".docx") {
-    const mammoth = require("mammoth");
+    const mammoth = await import("mammoth");
     const buffer = fs.readFileSync(input);
     const result = await mammoth.convertToMarkdown({ buffer });
     const name = path.basename(input).replace(/\.docx$/i, ".md");
