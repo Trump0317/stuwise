@@ -7,3 +7,4 @@ data/sessions/*
 !data/sessions/.gitkeep
 data/notes/*
 !data/notes/.gitkeep
+data/outputs/
