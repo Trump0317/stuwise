@@ -123,7 +123,7 @@ description: Write experiment reports interactively — fill template sections s
 | 1 | SKILL.md + 默认模板 | [x] |
 | 2 | DOCX/MD 模板上传 + 格式转换 | [x] |
 | 3 | 前端模板上传入口 | [x] |
-| 4 | 交互式填写流程验证 | 小 |
+| 4 | 交互式填写流程验证 | [~] |
 | 5 | 端到端验证 | 小 |
 
 ### 验收条件
